@@ -1,0 +1,360 @@
+<!doctype html>
+<html style="width:100%;height.100%;padding:0;margin:0;border:0;">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body id="body" style="width:100%;height.100%;background-color:#808080;padding:0;margin:0;border:0;overflow:hidden;">
+<div style="padding:0;margin:0;border:0;height:100%;text-align:center;">
+    <canvas id="canvas" style="display:inline-block;width:100%;height:100%;margin:0px;border:1px solid #000000;padding:0;">
+    </canvas>
+</div>
+<script src="./scripts/model/geom.js"></script>
+<script src="./scripts/model/intersect.js"></script>
+<script src="./scripts/model/render.js"></script>
+<script src="./scripts/optimization.js"></script>
+<script src="./scripts/Intersection.min.js"></script>
+<script src="./scripts/MyFast2Dv3.js"></script>
+<script src="./scripts/designer.js"></script>
+<script src="./scripts/raphael-2.2.0.min.b2.js"></script>
+<script src="./scripts/model/traj.js"></script>
+<script type="text/javascript">
+    let designer = new Designer("")
+        .parse("T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 6 80 15 P 900 F 100");
+
+    let st = getTrack(designer);
+
+    let trackKevinPath = new Path();
+    let spath = Raphael.transformPath(
+        st,
+        "t" + 0 + "," + 0 + " s" + 1 + "," + 1
+    );
+
+    let x1 = Infinity;
+    let y1 = Infinity;
+    let x2 = -Infinity;
+    let y2 = -Infinity;
+    let ub = function(x, y) {
+        x1 = Math.min(x, x1);
+        y1 = Math.min(y, y1);
+        x2 = Math.max(x, x2);
+        y2 = Math.max(y, y2);
+    }
+    for(let j = 0; j < spath.length; ++j) {
+        for(let k = 1; k < spath[j].length; k+=2) {
+            ub(spath[j][k], spath[j][k+1]);
+        }
+    }
+    console.log(JSON.stringify([x1,y1,x2,y2]));
+    let scale = null;
+
+    /*spath = Raphael.transformPath(
+        st,
+        "t" + vtransx + "," + vtransy + " s" + vscale + "," + vscale
+    );*/
+
+
+    trackKevinPath.parseData(spath.toString());
+
+    let n = designer.gridcount;
+    function parseTrack(strack) {
+        let a = strack.split(",");
+        let wh = a[0].trim().split(" ");
+        let w = parseInt(wh[0]);
+        let h = parseInt(wh[1]);
+        let walls = [];
+        let R = null;
+        let sx, sy, fx, fy, f;
+        for (let i = 1; i < a.length; ++i) {
+            let b = a[i].trim().split(" ");
+            let x = parseInt(b[0]);
+            let y = parseInt(b[1]);
+            let r = parseInt(b[2]);
+            let cls = "wall";
+            if (i == 1) {
+                R = r;
+                sx = x;
+                sy = y;
+                cls = "start";
+            } else if (i == 2) {
+                fx = x;
+                fy = y;
+                f = r;
+                cls = "finish";
+            }
+            if (cls == "wall")
+                walls.push({c: new P(x, y), r: r});
+        }
+        let S = 1.0;
+        return {w: w, h: h, sx: sx, sy: sy, fx: fx, fy: fy, r: R, R: R/*(1+S)*/, F: f, walls: walls,
+            S:S, arrowSize: 0.2 * R, car: 0.5 * R};
+    }
+
+    let track = parseTrack("200 100, 30 10 15, 180 90 35, 50 70 15, 50 30 15, 50 50 15, 50 10 15, 150 30 15, 150 70 15, 150 50 15, 150 90 15");
+
+    let c = document.getElementById("canvas");
+    let ctx = c.getContext("2d");
+    let tx = null;
+    let ty = null;
+    function resizePaper() {
+        var w = window.innerWidth
+            || document.documentElement.clientWidth
+            || document.body.clientWidth;
+
+        var h = window.innerHeight
+            || document.documentElement.clientHeight
+            || document.body.clientHeight;
+        scale = Math.min(w/ (x2-x1), h / (y2-y1));
+        tx = -scale*x1 + (w - scale*(x2-x1))/2;
+        ty = -scale*y1 + (h - scale*(y2-y1))/2;
+        ctx.canvas.width = w;
+        ctx.canvas.height = h;
+        render();
+    }
+    let stredy_ = [designer.startpos(0).x, designer.startpos(0).y];
+    let body_ = stredy_.slice();
+    let body = null;
+    let stredy = null;
+    let nove = null;
+    body = new Float64Array(body_);
+    stredy = new Float64Array(stredy_);
+    let color = ["#eb0000", "#800000", "#0000ff", "#eb8000", "#808000", "#FF00FF", "#008080", "#0080FF", "#eb0000", "#800000"];
+    let ts = [];
+
+    let t0 = 1.0;
+
+    let animMove = [];
+
+    for (let i = 0; i < n; ++i) {
+        let sp = designer.startpos(i);
+        ts.push((new Traj(track)).m(sp.x, sp.y));
+        animMove.push(0);
+    }
+    let origb = false;
+    let playerToMove = 0;
+    function e2m(e) {
+        let rect = canvas.getBoundingClientRect();
+        return new P(e.clientX - rect.left, e.clientY - rect.top).m();
+    }
+    let animating = 1.0;
+    let tmr = setInterval(anim, 1000/60);
+    let tmrr = setInterval(render, 1000/60);
+    let animStart = new Date().getTime();
+    function anim() {
+        if(animating != 0) {
+            let now = new Date().getTime();
+            t0 += (now - animStart) / (250);//.t0 + animating * 4 / 60;
+            animStart = now;
+            while(animating > 0 && t0 > 1.0) {
+                if(animMove[0] < ts[0].length-1) {
+                    for(let i = 0;i < n; ++i)
+                        animMove[i] += 1;
+                    t0 -= 1.0;
+                } else {
+                    let delta = t0 - 1.0;
+                    for(let i = 0;i < n; ++i)
+                        animMove[i] = 0;
+                    t0 = delta;
+                    //animating *= -1;
+                }
+
+            }
+            /*if(animating < 0 && t0 < 0.0) {
+                if(animMove[0] > 1) {
+                    for(let i = 0;i < n; ++i)
+                        animMove[i] -= 1;
+                    t0 += 1.0;
+                } else {
+                    let delta = 1+t0 ;
+                    for(let i = 0;i < n; ++i)
+                        animMove[i] = ts[0].length;
+                    t0 = 1.0 - delta;
+                    animating *= -1;
+                }
+
+            }*/
+            //render();
+        }
+    }
+
+    function down(e) {
+        let i = body_.length - 2;
+        origb = e2m(e);
+        let B = bod(e, playerToMove);
+        optim(B, playerToMove);
+    }
+    function nextMove() {
+        if (playerToMove == n-1) {
+            playerToMove = 0;
+            B = bod(e, playerToMove);
+            let C = ts[playerToMove].t2b(ts[playerToMove].c());
+            body_ = [B.x, B.y];
+            stredy_ = [C.x, C.y];
+        } else {
+            playerToMove += 1;
+            let C = ts[playerToMove].t2b(ts[playerToMove].c());
+            stredy_.push(C.x);
+            stredy_.push(C.y);
+            B = bod(e, playerToMove);
+            body_.push(B.x);
+            body_.push(B.y);
+        }
+    }
+    function up(e) {
+        let i = body_.length - 2;
+        let B = bod(e, playerToMove);
+        optim(B, playerToMove);
+        //alert(JSON.stringify(nove));
+        origb = false;
+        body_[i] = B.x;
+        body_[i + 1] = B.y;
+        if (playerToMove == n-1) {
+            for (let j = 0; j < n; ++j) {
+                let nb = ts[j].b2t(nove[j]);
+                ts[j].m(nb);
+            }
+            playerToMove = 0;
+            B = bod(e, playerToMove);
+            let C = ts[playerToMove].t2b(ts[playerToMove].c());
+            body_ = [B.x, B.y];
+            stredy_ = [C.x, C.y];
+        } else {
+            playerToMove += 1;
+            let C = ts[playerToMove].t2b(ts[playerToMove].c());
+            stredy_.push(C.x);
+            stredy_.push(C.y);
+            B = bod(e, playerToMove);
+            body_.push(B.x);
+            body_.push(B.y);
+        }
+        for(let i = 0; i < n; ++i){
+            animMove[i] = 0;
+        }
+        body = body_.slice();
+        stredy = stredy_.slice();
+        B = bod(e, playerToMove);
+        optim(B, playerToMove);
+        //t0 = 0
+    }
+
+    function adjusted() {
+        let softrelu = function (t) {
+            return function (x) {
+                return 1.0 / t * Math.log(1 + Math.exp(t * x));
+            }
+        }
+        let relu = softrelu(10.0);
+        let F = function (X) {
+            let dist = 0.0;
+            for (let i = 0; i < X.length / 2; ++i) {
+                let dx = X[i * 2] - body_[i * 2];
+                let dy = X[i * 2 + 1] - body_[i * 2 + 1];
+                dist += (dx * dx + dy * dy);
+                dx = X[i * 2] - stredy[i * 2];
+                dy = X[i * 2 + 1] - stredy[i * 2 + 1];
+                dist += 100.0 * Math.pow(relu(Math.sqrt(dx * dx + dy * dy) - ts[i].R().R), 2.0);
+                for (let j = i + 1; j < X.length / 2; ++j) {
+                    dx = X[i * 2] - X[j * 2];
+                    dy = X[i * 2 + 1] - X[j * 2 + 1];
+                    dist += 100 * Math.pow(relu(track.car - Math.sqrt(dx * dx + dy * dy)), 2.0);
+                }
+            }
+            return dist;
+        };
+        body = body_.slice();
+        let X0 = body.slice();
+        let ret = null;
+        if(n > 1) {
+            let result = optimjs.minimize_Powell(F, X0);
+            let nn = result["argument"];
+            ret = [];
+            for (let i = 0; i < n; ++i) {
+                let b = new P(nn[i * 2], nn[i * 2 + 1]);
+                ret.push(b);
+            }
+        }
+        else {
+            ret = [new P(X0[0], X0[1])];
+        }
+        return ret;
+
+    }
+
+    function render(){
+        if(nove === null || nove.length < 1)
+            return;
+        ctx.fillStyle = "#808080";
+        ctx.fillRect(0, 0, 8000, 6000);
+        drawTrackDesign(ctx, st);
+        let nb0 = new P(body[2*playerToMove],body[2*playerToMove+1]);
+        for (let i = 0; i < ts.length; ++i) {
+            for (let j = 0; j < ts[i].length; ++j) {
+                //if(i > playerToMove && j == ts[i].length-1)
+                drawMove(ctx, ts[i], false, color[i], 1.0, t0, i, j)
+            }
+        }
+        for (let i = 0; i < nove.length; ++i) {
+            let ob = ts[i].b2t(new P(body[2*i], body[2*i+1]));
+            //let ots = ts[i].plan(ob);
+
+            let nb = ts[i].b2t(nove[i]);
+            let nts = ts[i].plan(nb);
+
+            //if(ob.sub(nb).len() > 0.001)
+            //    drawMove(ctx, ots, color[i], 0.25, 1.0);
+            if(i == playerToMove) {
+                drawMove(ctx, nts, true, color[i], 1.0, t0, i);
+            } else
+                drawMove(ctx, nts, true, color[i], 0.99, t0, i);
+
+            let S2 = nts.t2b(nts.c());
+            if (i == playerToMove) {
+                R = /*ts[i].R().R;*/nts.R(nts.length-2).R;
+                let S1 = nts.t2b(nts.c(0, 0, nts.length-2), nts.length-2);
+                drawCircle(ctx,S1,/* new P(stredy[playerToMove * 2], stredy[playerToMove * 2 + 1]), */R, color[playerToMove]);
+                R = nts.R().R;
+                drawCircle(ctx, S2, R, color[i]);
+            }
+        }
+    }
+
+    function optim(B, prep) {
+        body_[prep * 2] = B.x;
+        body_[prep * 2 + 1] = B.y;
+        nove = adjusted();
+        render();
+    }
+
+    function bod(e, prep) {
+        let B = e2m(e);
+        let shorten = 0.999;
+        let C = ts[prep].t2b(ts[prep].c());
+        let D = B.sub(C);
+        let R = ts[prep].R().R;
+        if (origb != false) {
+            let E = origb.sub(C);
+            if (E.len() >= R) {
+                shorten *= R / D.len() * Math.min(1.0, D.len() / E.len());
+            } else {
+                shorten *= 1.0;
+            }
+        } else {
+            if (D.len() >= R)
+                shorten *= Math.min(1.0, R / D.len());
+            else
+                shorten *= 1.0;
+        }
+        return new P(C.x + shorten * D.x, C.y + shorten * D.y);
+    }
+
+    function move(e) {
+        let B = bod(e, playerToMove);
+        optim(B, playerToMove);
+    }
+    document.getElementById("body").onmousemove = move;
+    document.getElementById("body").onmousedown = down;
+    document.getElementById("body").onmouseup = up;
+    document.getElementById("body").onresize = resizePaper;
+    resizePaper();
+</script>
+</body>
+</html>
