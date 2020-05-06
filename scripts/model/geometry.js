@@ -17,15 +17,9 @@ P.prototype.len = function() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
 };
 P.prototype.n = function() {
-    var len = this.len();
+    let len = this.len();
     return new P(this.x/len, this.y/len);
 };
 P.prototype.p = function() {
     return new P(this.y, -this.x);
-};
-P.prototype.v = function() {
-    return new P(tx + scale*this.x, ty + scale*this.y);
-};
-P.prototype.m = function() {
-    return new P((this.x-tx)/scale, (this.y-ty)/scale);
 };

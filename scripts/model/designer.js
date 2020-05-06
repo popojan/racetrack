@@ -453,7 +453,7 @@ Designer.prototype.finishline = function(i) {
     var b = (p.a+90)/180*Math.PI;
     var side = this.w;
     var s = {x1: p.x+side*Math.cos(b), y1: p.y + side*Math.sin(b),
-        x2: p.x-side*Math.cos(b), y2: p.y - side*Math.sin(b), order: i +1, direction:1, finish: (i == this.checks.length - 1)
+        x2: p.x-side*Math.cos(b), y2: p.y - side*Math.sin(b), order: i +1, direction:1, finish: (i === this.checks.length - 1)
     };
     return s;
 };
