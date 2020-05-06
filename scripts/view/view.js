@@ -4,7 +4,7 @@ function View (canvasId) {
     this.colors = ["#eb0000", "#800000", "#0000ff", "#eb8000", "#808000", "#FF00FF", "#008080", "#0080FF", "#eb0000", "#800000"];
     this.translation = null;
     this.scale = null;
-    this.arrowScale = 1.6;
+    this.arrowScale = 2.0;
 }
 
 View.prototype.getModelCoords = function(e) {

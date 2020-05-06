@@ -5,7 +5,7 @@ function Trajectory (track) {
     this.moves = [];
     this.animationMove = 1;
     this.animationMoveFraction = 0;
-    this.animationPeriod = 250;
+    this.animationPeriod = 200;
     return this;
 }
 
