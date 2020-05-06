@@ -3,7 +3,7 @@ bezier racetrack aka **formulky** from scratch
 
 another take on turn based racing
 
-deployed at [bangneki.com/racetrack](https://bangrneki.com/racetrack/)
+deployed at [bangneki.com/racetrack](https://bangneki.com/racetrack/)
 
 new features as opposed to [hraj.si/formulky](https://hraj.si/formulky)
 
