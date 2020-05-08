@@ -32,35 +32,49 @@ View.prototype.render = function(model) {
     this.clear();
     this.drawTrack(model.track);
 
-    //let nb0 = new P(body[2*playerToMove],body[2*playerToMove+1]);
     for (let i = 0; i < model.race.players.length; ++i) {
         let player = model.race.players[i];
-        for (let j = 0; j < player.trajectory.moves.length; ++j) {
-            this.drawMove(player.trajectory, j, false, this.colors[i], 1.0)
+        let t = player.trajectory;
+        let lastMove = t.moves.length;
+        if(i <= model.playerToMove && player.adjustedMove) {
+            let adjustedMove = t.b2t(player.adjustedMove);
+            t.plan(adjustedMove, t.moves.length);
+            lastMove += 1;
+            let R = t.steeringRadius(lastMove-1);
+            let S1 = t.t2b(player.trajectory.c(0, 0, lastMove-1), lastMove-1);
+            let S2 = t.t2b(t.c());
+            this.drawCircle(S1, R, this.colors[i]);
+            R = t.steeringRadius();
+            this.drawCircle(S2, R, this.colors[i]);
+        }
+        for (let j = 0; j < lastMove; ++j) {
+            this.drawMove(t, j, j === lastMove-1, this.colors[i], 1.0)
         }
     }
-    for (let i = 0; i <= model.playerToMove; ++i) {
+    /*for (let i = 0; i <= model.playerToMove; ++i) {
         //let ob = model.players[i].trajectory.b2t(new P(body[2*i], body[2*i+1]));
         //let ots = ts[i].plan(ob);
         let player = model.race.players[i];
-        let adjustedMove = player.trajectory.b2t(player.adjustedMove);
-        let newTrajectory = player.trajectory.plan(adjustedMove);
+        if(player.adjustedMove) {
+            let adjustedMove = player.trajectory.b2t(player.adjustedMove);
+            let newTrajectory = player.trajectory.plan(adjustedMove, player.trajectory.moves.length);
 
-        //if(ob.sub(nb).len() > 0.001)
-        //    drawMove(ctx, ots, this.color[i], 0.25, 1.0);
-        let alpha = i === model.playerToMove ? 1.0 : 0.99;
-        this.drawMove(newTrajectory, newTrajectory.moves.length-1, true, this.colors[i], alpha);
+            //if(ob.sub(nb).len() > 0.001)
+            //    drawMove(ctx, ots, this.color[i], 0.25, 1.0);
+            let alpha = i === model.playerToMove ? 1.0 : 0.99;
+            this.drawMove(newTrajectory, newTrajectory.moves.length, true, this.colors[i], alpha);
 
-        let S2 = newTrajectory.t2b(newTrajectory.c());
-        if (i === model.playerToMove) {
-            let prev = newTrajectory.moves.length-2;
-            let R = newTrajectory.steeringRadius(prev);
-            let S1 = newTrajectory.t2b(newTrajectory.c(0, 0, prev), prev);
-            this.drawCircle(S1, R, this.colors[i]);
-            R = newTrajectory.steeringRadius();
-            this.drawCircle(S2, R, this.colors[i]);
+            let S2 = newTrajectory.t2b(newTrajectory.c());
+            if (i === model.playerToMove) {
+                let prev = newTrajectory.moves.length - 1;
+                let R = newTrajectory.steeringRadius(prev);
+                let S1 = newTrajectory.t2b(newTrajectory.c(0, 0, prev), prev);
+                this.drawCircle(S1, R, this.colors[i]);
+                R = newTrajectory.steeringRadius();
+                this.drawCircle(S2, R, this.colors[i]);
+            }
         }
-    }
+    }*/
 };
 
 View.prototype.drawCircle = function(c, R, color) {
@@ -96,7 +110,7 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
     B = B.v();
     b = b.v();*/
     //if(alpha == 1.0){
-    if(moveNumber === trajectory.moves.length-1) {
+    if(drawArrow || trajectory.animationMove ===  moveNumber) {
         ctx.beginPath();
         let vA =  this.v(A);
         let vb = this.v(b);
@@ -107,10 +121,11 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
     }
     ctx.globalAlpha = 1.0;
     let legal = trajectory.legal(moveNumber);
-    for(let j = 0; j < trajectory.crashp[moveNumber].points.length; ++j) {
+    let intersections = trajectory.getMove(moveNumber).result.intersections.points;
+    for(let j = 0; j < intersections.length; ++j) {
         let b1 = A.add((b.sub(A)).mul(2 / 3));
         let b2 = B.add((b.sub(B)).mul(2 / 3));
-        let cp = trajectory.crashp[moveNumber].points[j];
+        let cp = intersections[j];
         let p0 = Raphael.findDotsAtSegment(A.x, A.y, b1.x, b1.y, b2.x, b2.y, B.x, B.y, cp.t - 0.01);
         this.drawArrow(new P(p0.x, p0.y), new P(cp.point.x, cp.point.y), color, true, true);
     }

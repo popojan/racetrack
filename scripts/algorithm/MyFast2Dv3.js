@@ -16,7 +16,6 @@
 var svgns = "http://www.w3.org/2000/svg";
 function Intersection(s) {
     this.status = s;
-    this.point = new Point2D(0, 0);
     this.points = [];
     this.t = 2;
 };

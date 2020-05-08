@@ -15,7 +15,7 @@ Model.prototype.startRace = function (trackDesign, playerCount) {
     for(let i = 0; i < playerCount; ++i) {
         let player = new Player("player" + i, steeringRadius, collisionRadius);
         let trajectory = new Trajectory(this.track)
-        player.trajectory = trajectory.push(this.track.startPositions[i]);;
+        player.trajectory = trajectory.move(this.track.startPositions[i], 1);;
         this.race.addPlayer(player);
     }
     this.race.start();
@@ -91,7 +91,8 @@ Model.prototype.finalizeMove = function(p) {
         for (let j = 0; j < n; ++j) {
             let player = this.race.players[j];
             let adjustedMove = player.trajectory.b2t(player.adjustedMove);
-            player.trajectory.m(adjustedMove);
+            player.trajectory.altmoves[player.trajectory.moves.length] = undefined;
+            player.trajectory.move(adjustedMove, player.trajectory.moves.length)
         }
         this.playerToMove = 0;
     } else {

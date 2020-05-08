@@ -1,21 +1,22 @@
+function MoveResult() {
+    this.offTrackFraction = null;
+    this.intersections = null;
+}
+
+function Move(p) {
+    this.point = p;
+    this.result = new MoveResult();
+}
+
 function Trajectory (track) {
     this.track = track;
-    this.crashp = [];
-    this.offTrackFraction = [];
     this.moves = [];
+    this.altmoves = [undefined];
     this.animationMove = 1;
     this.animationMoveFraction = 0;
     this.animationPeriod = 200;
     return this;
 }
-
-Trajectory.prototype.copyFrom = function (t) {
-    this.track = t.track;
-    this.animationMove = t.animationMove;
-    this.animationMoveFraction = t.animationMoveFraction;
-    this.animationPeriod = t.animationPeriod;
-    return this;
-};
 
 Trajectory.prototype.advanceAnimation = function (timeDelta, currentMove) {
     this.animationMoveFraction += timeDelta / this.animationPeriod;
@@ -36,46 +37,55 @@ Trajectory.prototype.length = function(){
 };
 
 Trajectory.prototype.push = function(m){
-    this.crashp.push({points:[]});
-    this.offTrackFraction.push(0.0);
     this.moves.push(m);
+    this.altmoves.push(undefined);
     return this;
 };
 
-Trajectory.prototype.move = function(i){
-    return this.moves[i];
+Trajectory.prototype.getMove = function(i){
+    i = Math.max(0, Math.min(this.moves.length, i));
+    return (this.altmoves[i] || this.moves[i]);
 };
 
-
-Trajectory.prototype.m = function(x, y){
-    if(y === undefined) {
-        this.push(x);
-    } else {
-        this.push(new P(x, y));
+Trajectory.prototype.move = function(p, i, moves) {
+    moves = moves || this.moves;
+    if(i >= moves.length) {
+        moves.push(new Move(p));
+        i = moves.length - 1;
     }
-    let i = this.moves.length -1;
-    //let isCrash = (c.points.length > 0 && c.points[0].t >=0.0 && c.points[0].t <= 1.0);
-    this.crashp[i] = this.crash(i);
-    this.crashp[i].points.sort(function(a, b) {return (a.t - b.t);});
+    else {
+        moves[i].point = p;
+    }
+    this.evaluate(i, moves);
+    return this;
+};
+
+Trajectory.prototype.evaluate = function(i, moves) {
+    moves = moves || this.moves;
+    let intersections = this.crash(i);
+    let points = intersections.points;
+    points.sort(function(a, b) {return (a.t - b.t);});
     let parity = 0;
     for (let j = 0; j < i; ++j) {
-        parity += this.crashp[j].points.length;
+        parity += this.getMove(j).result.intersections.points.length;
     }
     let offTrackFraction = 0.0;
     let ts = [];
     if (parity % 2 === 1) {
         ts.push(0.0);
     }
-    for (let j = 0; j < this.crashp[i].points.length; ++j) {
-        ts.push(this.crashp[i].points[j].t);
+    for (let j = 0; j < points.length; ++j) {
+        ts.push(points[j].t);
     }
-    if ((parity + this.crashp[i].points.length) % 2 === 1) {
+    if ((parity + points.length) % 2 === 1) {
         ts.push(1.0);
     }
     for (let j = 1; j < ts.length; j += 2) {
         offTrackFraction += ts[j] - ts[j - 1];
     }
-    this.offTrackFraction[i] = offTrackFraction;
+    let result = moves[i].result;
+    result.offTrackFraction = offTrackFraction;
+    result.intersections = intersections;
     return this;
 };
 
@@ -91,8 +101,8 @@ Trajectory.prototype.c = function(dx, dy, i, b) {
     if(i === undefined) i = this.moves.length - 1;
     if(!dx) dx = 0;
     if(!dy) dy = 0;
-    let a = this.moves[Math.max(0, i-1)];
-    b = b||this.moves[i];
+    let a = this.getMove(i-1).point;
+    b = b||this.getMove(i).point;
     return new P(
         b.x + this.speedMomentum(i - 1) * (b.x - a.x) + dx,
         b.y + this.speedMomentum(i - 1) * (b.y - a.y) + dy
@@ -101,7 +111,7 @@ Trajectory.prototype.c = function(dx, dy, i, b) {
 
 Trajectory.prototype.ic = function(ci, i) {
     if(i === undefined) i = this.moves.length - 1;
-    let a = this.moves[Math.max(0, i)];
+    let a = this.getMove(i).point;
     let S = this.speedMomentum(i);//i+1
     return new P(
         (ci.x + S * a.x)/(1 + S),
@@ -112,21 +122,11 @@ Trajectory.prototype.ic = function(ci, i) {
 Trajectory.prototype.legal = function(i) {
     if(i === undefined) i = this.moves.length - 1;
     let c = this.c(0, 0, Math.max(0, i-1));
-    let p = this.moves[i];
+    let p = this.getMove(i).point;
     let dx = p.x - c.x;
     let dy = p.y - c.y;
     let R = this.steeringRadius(i);
     return dx*dx + dy*dy <= R*R;
-};
-
-Trajectory.prototype.concat = function(t, cnt) {
-    if(cnt === undefined) cnt = t.moves.length;
-    for(let i = 0; i < cnt; ++i) {
-        this.moves.push(t.moves[i]);
-        this.crashp.push(t.crashp[i]);
-        this.offTrackFraction.push(t.offTrackFraction[i]);
-    }
-    return this;
 };
 
 Trajectory.prototype.crash = function(i) {
@@ -155,10 +155,8 @@ Trajectory.prototype.crash = function(i) {
 
 Trajectory.prototype.plan = function(b, i) {
     if(i === undefined) i = this.moves.length -1;
-    let ret = new Trajectory().copyFrom(this);
-    ret.concat(this, i + 1);
-    ret.m(b.x, b.y);
-    return ret;
+    this.move(b, i, this.altmoves);
+    return this;
 };
 
 
@@ -196,7 +194,7 @@ Trajectory.prototype.getOffTrackFraction = function(i) {
     if(i === undefined){
         i = this.moves.length - 1;
     }
-    return this.offTrackFraction[Math.min(this.moves.length-1, Math.max(0, i))];
+    return this.getMove(i).result.offTrackFraction;
 };
 
 Trajectory.prototype.steeringRadius = function(i) {

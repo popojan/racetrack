@@ -9,8 +9,3 @@ function Player(name, steeringRadius, collisionRadius) {
 Player.prototype.participates = function(race, startPosition) {
     this.trajectory = new Trajectory(track).push(startPosition);
 };
-
-Player.prototype.move = function () {
-    let nextMove = this.trajectory.b2t(this.adjustedMove);
-    this.trajectory.m(nextMove);
-}
