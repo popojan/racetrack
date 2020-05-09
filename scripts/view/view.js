@@ -129,6 +129,8 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
     for(let j = 0; j < intersections.length; ++j) {
         let cp = intersections[j];
         getTangentPoint(cp.t, A, b, B, this.tmp_p0, this.tmp_p1);
+        this.tmp_p1.x = cp.point.x;
+        this.tmp_p1.y = cp.point.y;
         this.drawArrow(this.tmp_p0, this.tmp_p1, color, true, true);
     }
     if(trajectory.animationMove ===  moveNumber && moveNumber > 0) {

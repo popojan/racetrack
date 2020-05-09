@@ -1,0 +1,30 @@
+{
+  "name": "racetrack",
+  "version": "0.0.0",
+  "description": "bezier racetrack turn based racing",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/popojan/racetrack.git"
+  },
+  "keywords": [
+    "racetrack",
+    "turn base racing",
+    "game",
+    "bezier"
+  ],
+  "author": "Jan Popelka",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/popojan/racetrack/issues"
+  },
+  "homepage": "https://github.com/popojan/racetrack#readme",
+  "dependencies" : {
+     "kld-intersections": "thelonious/kld-intersections",
+     "optimization-js" : "optimization-js/optimization-js",
+     "raphael": "DmitryBaranovskiy/raphael"
+  }
+}
