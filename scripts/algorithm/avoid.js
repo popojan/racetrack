@@ -1,5 +1,7 @@
 function Avoid() {
+    this.eax = new P();
 }
+
 
 Avoid.prototype.adjust =  function (players, lastPlanned) {
     let softRELU = function (t) {
@@ -41,11 +43,13 @@ Avoid.prototype.adjust =  function (players, lastPlanned) {
         let nn = result["argument"];
         ret = [];
         for (let i = 0; i <= lastPlanned; ++i) {
-            players[i].adjustedMove = new P(nn[i * 2], nn[i * 2 + 1]);
+            players[i].adjustedMove.x = nn[i * 2];
+            players[i].adjustedMove.y = nn[i * 2 + 1];
         }
     }
     else {
-        players[0].adjustedMove = new P(X0[0], X0[1]);
+        players[0].adjustedMove.x = X0[0];
+        players[0].adjustedMove.y = X0[1];
     }
     return ret;
 };

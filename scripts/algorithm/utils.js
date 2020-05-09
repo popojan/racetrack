@@ -1,5 +1,22 @@
 Raphael = new (function(){})();
+function bezierDerivative(t, P0, P1, P2, output) {
+    output.x = 2*(1-t)*(P1.x-P0.x) + 2*t*(P2.x-P1.x);
+    output.y = 2*(1-t)*(P1.y-P0.y) + 2*t*(P2.y-P1.y);
+    return output;
+}
 
+function bezierPoint(t, P0, P1, P2, output) {
+    output.x = P1.x + (1-t)*(1-t)*(P0.x-P1.x) + t*t * (P2.x-P1.x);
+    output.y = P1.y + (1-t)*(1-t)*(P0.y-P1.y) + t*t * (P2.y-P1.y);
+    return output;
+}
+
+function getTangentPoint(t, A, b, B, p0, p1) {
+    bezierDerivative(t, A, b, B, p0);
+    bezierPoint(t, A, b, B, p1);
+    p0.x = p1.x - p0.x;
+    p0.y = p1.y - p0.y;
+}
 Raphael.findDotsAtSegment = function (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) {
     let t1 = 1 - t,
         t13 = Math.pow(t1, 3),

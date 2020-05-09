@@ -27,6 +27,7 @@ Model.prototype.updates = function (view) {
 };
 
 Model.prototype.update = function () {
+    this.animate();
     for(let i = 0; i < this.views.length; ++i) {
         this.views[i].render(this);
     }
@@ -41,8 +42,8 @@ Model.prototype.animate = function () {
 
 Model.prototype.startAnimation = function() {
     this.animationLastTime = new Date().getTime();
-    this.timerRender = window.setInterval(this.update.bind(this), 1000/60);
-    this.timerUpdate = window.setInterval(this.animate.bind(this), 1000/60);
+    this.timerRender = window.setInterval(this.update.bind(this), 1000/120);
+    //this.timerUpdate = window.setInterval(this.animate.bind(this), 1000/12s0);
 };
 
 Model.prototype.preciseMove = function (B) {
@@ -64,13 +65,21 @@ Model.prototype.preciseMove = function (B) {
         else
             shorten *= 1.0;
     }
-    return new P(C.x + shorten * D.x, C.y + shorten * D.y);
+    let pm = this.race.players[this.playerToMove].plannedMove
+    pm.x = C.x + shorten * D.x;
+    pm.y = C.y + shorten * D.y;
+    return pm;
 };
 
 
 Model.prototype.adjust = function(p) {
-    this.race.players[this.playerToMove].plannedMove = this.preciseMove(p);
+    this.preciseMove(p);
     this.avoid.adjust(this.race.players, this.playerToMove);
+    for(let i = 0; i <= this.playerToMove; ++i) {
+        let player = this.race.players[i];
+        let adjustedMove = player.trajectory.b2t(player.adjustedMove);
+        player.trajectory.plan(adjustedMove, player.trajectory.moves.length);
+    }
     this.update();
 }
 

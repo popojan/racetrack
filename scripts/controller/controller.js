@@ -45,4 +45,5 @@ Controller.prototype.resizePaper = function(e) {
     let bbox = this.model.track.getBoundingBox(0);
     this.view.resize(w, h, bbox);
     this.ready = true;
+    this.view.render(this.model);
 };

@@ -2,8 +2,8 @@ function Player(name, steeringRadius, collisionRadius) {
     this.name = name;
     this.steeringRadius = steeringRadius;
     this.collisionRadius = collisionRadius;
-    this.plannedMove = null;
-    this.adjustedMove = null;
+    this.plannedMove = new P();
+    this.adjustedMove = new P();
 }
 
 Player.prototype.participates = function(race, startPosition) {

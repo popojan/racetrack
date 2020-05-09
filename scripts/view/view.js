@@ -5,6 +5,9 @@ function View (canvasId) {
     this.translation = null;
     this.scale = null;
     this.arrowScale = 2.0;
+    this.tmp_der = new P();
+    this.tmp_p0 = new P();
+    this.tmp_p1 = new P();
 }
 
 View.prototype.getModelCoords = function(e) {
@@ -14,7 +17,7 @@ View.prototype.getModelCoords = function(e) {
 
 View.prototype.clear = function() {
     this.context.fillStyle = "#808080";
-    this.context.fillRect(0, 0, 8000, 6000);
+    this.context.fillRect(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
 };
 
 View.prototype.resize = function (width, height, bbox) {
@@ -26,6 +29,7 @@ View.prototype.resize = function (width, height, bbox) {
     );
     this.canvas.width = width;
     this.canvas.height = height;
+    this.trackPath = undefined;
 };
 View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
@@ -36,16 +40,16 @@ View.prototype.render = function(model) {
         let player = model.race.players[i];
         let t = player.trajectory;
         let lastMove = t.moves.length;
-        if(i <= model.playerToMove && player.adjustedMove) {
-            let adjustedMove = t.b2t(player.adjustedMove);
-            t.plan(adjustedMove, t.moves.length);
+        if(i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
             lastMove += 1;
-            let R = t.steeringRadius(lastMove-1);
-            let S1 = t.t2b(player.trajectory.c(0, 0, lastMove-1), lastMove-1);
-            let S2 = t.t2b(t.c());
-            this.drawCircle(S1, R, this.colors[i]);
-            R = t.steeringRadius();
-            this.drawCircle(S2, R, this.colors[i]);
+            if(i === model.playerToMove) {
+                let R = t.steeringRadius(lastMove - 1);
+                let S1 = t.t2b(player.trajectory.c(lastMove - 1), lastMove - 1);
+                let S2 = t.t2b(t.c());
+                this.drawCircle(S1, R, this.colors[i]);
+                R = t.steeringRadius();
+                this.drawCircle(S2, R, this.colors[i]);
+            }
         }
         for (let j = 0; j < lastMove; ++j) {
             this.drawMove(t, j, j === lastMove-1, this.colors[i], 1.0)
@@ -110,7 +114,7 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
     B = B.v();
     b = b.v();*/
     //if(alpha == 1.0){
-    if(drawArrow || trajectory.animationMove ===  moveNumber) {
+    if(drawArrow/* || trajectory.animationMove ===  moveNumber*/) {
         ctx.beginPath();
         let vA =  this.v(A);
         let vb = this.v(b);
@@ -123,37 +127,31 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
     let legal = trajectory.legal(moveNumber);
     let intersections = trajectory.getMove(moveNumber).result.intersections.points;
     for(let j = 0; j < intersections.length; ++j) {
-        let b1 = A.add((b.sub(A)).mul(2 / 3));
-        let b2 = B.add((b.sub(B)).mul(2 / 3));
         let cp = intersections[j];
-        let p0 = Raphael.findDotsAtSegment(A.x, A.y, b1.x, b1.y, b2.x, b2.y, B.x, B.y, cp.t - 0.01);
-        this.drawArrow(new P(p0.x, p0.y), new P(cp.point.x, cp.point.y), color, true, true);
+        getTangentPoint(cp.t, A, b, B, this.tmp_p0, this.tmp_p1);
+        this.drawArrow(this.tmp_p0, this.tmp_p1, color, true, true);
     }
-    if(trajectory.animationMove ===  moveNumber) {
-        let b1 = A.add((b.sub(A)).mul(2/3));
-        let b2 = B.add((b.sub(B)).mul(2/3));
-        let p0 = Raphael.findDotsAtSegment(A.x, A.y, b1.x, b1.y, b2.x, b2.y, B.x, B.y, trajectory.animationMoveFraction-0.01);
-        let p1 = Raphael.findDotsAtSegment(A.x, A.y, b1.x, b1.y, b2.x, b2.y, B.x, B.y, trajectory.animationMoveFraction);
-        this.drawArrow(new P(p0.x, p0.y), new P(p1.x, p1.y), color, true, false);
+    if(trajectory.animationMove ===  moveNumber && moveNumber > 0) {
+        getTangentPoint(trajectory.animationMoveFraction, A, b, B, this.tmp_p0, this.tmp_p1);
+        this.drawArrow(this.tmp_p0, this.tmp_p1, color, true, false);
     }
-    if(drawArrow) {
-        let b1 = A.add((b.sub(A)).mul(2/3));
-        let b2 = B.add((b.sub(B)).mul(2/3));
-        let p0 = Raphael.findDotsAtSegment(A.x, A.y, b1.x, b1.y, b2.x, b2.y, B.x, B.y, 1.0-0.01);
-        let p1 = Raphael.findDotsAtSegment(A.x, A.y, b1.x, b1.y, b2.x, b2.y, B.x, B.y, 1.0);
-        this.drawArrow(new P(p0.x, p0.y), new P(p1.x, p1.y), color, false, false);
+    if(drawArrow && moveNumber > 0) {
+        getTangentPoint(1.0, A, b, B, this.tmp_p0, this.tmp_p1);
+        this.drawArrow(this.tmp_p0, this.tmp_p1, color, false, false);
     }
 };
 
 View.prototype.drawTrack = function(track) {
     let ctx = this.context;
-    let p = new Path2D();
-    const p0 = new Path2D(track.renderPath);
-    const m = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix();
-    const t = m.translate(this.translation.x, this.translation.y).scale(this.scale.x, this.scale.y);
-    p.addPath(p0, t);
+    if(this.trackPath === undefined) {
+        this.trackPath = new Path2D();
+        const p0 = new Path2D(track.renderPath);
+        const m = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix();
+        const t = m.translate(this.translation.x, this.translation.y).scale(this.scale.x, this.scale.y);
+        this.trackPath.addPath(p0, t);
+    }
     ctx.fillStyle = "#ffffff";
-    ctx.fill(p);
+    ctx.fill(this.trackPath);
 };
 
 View.prototype.v = function(p) {

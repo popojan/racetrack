@@ -14,7 +14,10 @@ Track.prototype.createFrom = function(designString) {
         path = design.o() + "L" + design.i().substr(1) + "z";
     }
     this.renderPath = path;
+
+    //TODO get rid of Raphael dependency
     this.sPath = Raphael.transformPath(path,"t" + 0 + "," + 0 + " s" + 1 + "," + 1);
+
     this.collisionPath = new Path();
     this.collisionPath.parseData(this.sPath.toString());
 
