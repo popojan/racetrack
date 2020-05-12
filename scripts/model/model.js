@@ -9,6 +9,7 @@ function Model() {
     this.ebx = new P();
     this.ecx = new P();
     this.edx = new P();
+    this.initialPosition = new P(null, null);
     return this;
 }
 Model.prototype.now = function() {
@@ -60,7 +61,7 @@ Model.prototype.preciseMove = function (B) {
     let C = this.eax.mov(trajectory.t2b(trajectory.c()));
     let D = this.ebx.mov(B).sub(C);
     let R = trajectory.steeringRadius();
-    if (this.initialPosition) {
+    if (this.initialPosition.x !== null) {
         let E = this.ecx.mov(this.initialPosition).sub(C);
         if (E.len() >= R) {
             shorten *= R / D.len() * Math.min(1.0, D.len() / E.len());
@@ -89,7 +90,7 @@ Model.prototype.adjust = function(p) {
 }
 
 Model.prototype.initializeMove = function(p) {
-    this.initialPosition = p;
+    this.initialPosition.mov(p);
     this.adjust(p);
 };
 
@@ -99,7 +100,7 @@ Model.prototype.updateMove = function(p) {
 
 Model.prototype.finalizeMove = function(p) {
     this.adjust(p);
-    this.initialPosition = false;
+    this.initialPosition.x = null;
     let n = this.race.players.length;
     if (this.playerToMove === n - 1) {
         for (let j = 0; j < n; ++j) {
