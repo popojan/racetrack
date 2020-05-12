@@ -24,7 +24,6 @@ function Intersection(s, capacity) {
 };
 Intersection.prototype.appendPoint = function (point, t) {
     if(t >= 0 && t< 1) {
-
         this.points[this.count].x = point.x;
         this.points[this.count].y = point.y;
         this.points[this.count].t = t;
@@ -973,7 +972,6 @@ pol33.coefs[0] = a0;
 
         let xRoots = pol41.getRoots(roots2); //new Polynomial(c13x, c12x, c11x, c10x - c20x - s * c21x - s * s * c22x - s * s * s * c23x).getRoots(roots2);
         let yRoots = pol42.getRoots(roots3); //new Polynomial(c13y, c12y, c11y, c10y - c20y - s * c21y - s * s * c22y - s * s * s * c23y).getRoots(roots3);
-        let lastResultIdx = 0;
         if (xRoots.length > 0 && yRoots.length > 0) {
             let TOLERANCE = 1e-8;
             checkRoots: for (let j = 0; j < xRoots.length; j++) {
@@ -981,13 +979,12 @@ pol33.coefs[0] = a0;
                 if (0 <= xRoot && xRoot <= 1) {
                     for (let k = 0; k < yRoots.length; k++) {
                             if (Math.abs(xRoot - yRoots[k]) < TOLERANCE) {
-                                result.points[lastResultIdx].x =
+                                result.points[result.count].x =
                                     c23x * s * s * s + c22x * s * s + c21x * s + c20x;
-                                result.points[lastResultIdx].y =
+                                result.points[result.count].y =
                                     c23y * s * s * s + c22y * s * s + c21y * s + c20y;
-                                result.points[lastResultIdx].t = s;
+                                result.points[result.count].t = s;
                                 result.count += 1;
-                                ++lastResultIdx;
                             }
                         }
                 }

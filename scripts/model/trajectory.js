@@ -72,8 +72,9 @@ Trajectory.prototype.move = function(p, i, moves) {
 Trajectory.prototype.evaluate = function(i, moves) {
     moves = moves || this.moves;
     let intersections = this.crash(i);
+    let count = intersections.count;
     let points = intersections.points;
-    points.sort(function(a, b) {return (a.t - b.t);});
+    points.sort(function(a, b) {return (a.x!== null && b.x!==null && a.t - b.t);});
     let parity = 0;
     for (let j = 0; j < i; ++j) {
         parity += this.getMove(j).result.intersections.count;
@@ -83,10 +84,10 @@ Trajectory.prototype.evaluate = function(i, moves) {
     if (parity % 2 === 1) {
         ts.push(0.0);
     }
-    for (let j = 0; j < intersections.count; ++j) {
+    for (let j = 0; j < count; ++j) {
         ts.push(points[j].t);
     }
-    if ((parity + intersections.count) % 2 === 1) {
+    if ((parity + count) % 2 === 1) {
         ts.push(1.0);
     }
     for (let j = 1; j < ts.length; j += 2) {
