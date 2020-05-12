@@ -4,22 +4,43 @@ function P(x, y){
 }
 P.prototype = {x:0, y:0};
 
+P.prototype.mov = function(b) {
+    this.x = b.x;
+    this.y = b.y;
+    return this;
+};
+
 P.prototype.add = function(b) {
-    return new P(this.x + b.x, this.y + b.y);
+    this.x += b.x;
+    this.y += b.y;
+    return this;
 };
+
 P.prototype.sub = function(b) {
-    return new P(this.x - b.x, this.y - b.y);
+    this.x -= b.x;
+    this.y -= b.y;
+    return this;
 };
+
 P.prototype.mul = function(b) {
-    return new P(b * this.x, b * this.y);
+    this.x *= b;
+    this.y *= b;
+    return this;
 };
+
 P.prototype.len = function() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
 };
 P.prototype.n = function() {
     let len = this.len();
-    return new P(this.x/len, this.y/len);
+    this.x /= len;
+    this.y /= len;
+    return this;
 };
+
 P.prototype.p = function() {
-    return new P(this.y, -this.x);
+    let x = this.x;
+    this.x = this.y;
+    this.y = -x;
+    return this;
 };

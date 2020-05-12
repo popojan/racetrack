@@ -5,8 +5,16 @@ function Model() {
     this.race = null;
     this.playerToMove = 0;
     this.avoid = new Avoid();
+    this.eax = new P();
+    this.ebx = new P();
+    this.ecx = new P();
+    this.edx = new P();
     return this;
 }
+Model.prototype.now = function() {
+    return window.performance.now();
+};
+
 Model.prototype.startRace = function (trackDesign, playerCount) {
     this.track = new Track().createFrom(trackDesign);
     this.race = new Race();
@@ -34,26 +42,26 @@ Model.prototype.update = function () {
 };
 
 Model.prototype.animate = function () {
-    let now = new Date().getTime();
+    let now = this.now();
     let timeDelta = (now - this.animationLastTime);
     this.animationLastTime = now;
     this.race.advanceAnimation(timeDelta);
 };
 
 Model.prototype.startAnimation = function() {
-    this.animationLastTime = new Date().getTime();
-    this.timerRender = window.setInterval(this.update.bind(this), 1000/120);
+    this.animationLastTime = this.now();
+    this.timerRender = window.setInterval(this.update.bind(this), 1000/60);
     //this.timerUpdate = window.setInterval(this.animate.bind(this), 1000/12s0);
 };
 
 Model.prototype.preciseMove = function (B) {
     let shorten = 0.999;
     let trajectory = this.race.players[this.playerToMove].trajectory;
-    let C = trajectory.t2b(trajectory.c());
-    let D = B.sub(C);
+    let C = this.eax.mov(trajectory.t2b(trajectory.c()));
+    let D = this.ebx.mov(B).sub(C);
     let R = trajectory.steeringRadius();
     if (this.initialPosition) {
-        let E = this.initialPosition.sub(C);
+        let E = this.ecx.mov(this.initialPosition).sub(C);
         if (E.len() >= R) {
             shorten *= R / D.len() * Math.min(1.0, D.len() / E.len());
         } else {
@@ -65,10 +73,7 @@ Model.prototype.preciseMove = function (B) {
         else
             shorten *= 1.0;
     }
-    let pm = this.race.players[this.playerToMove].plannedMove
-    pm.x = C.x + shorten * D.x;
-    pm.y = C.y + shorten * D.y;
-    return pm;
+    return this.race.players[this.playerToMove].plannedMove.mov(C).add(D.mul(shorten));
 };
 
 

@@ -1,5 +1,6 @@
 function Controller(elementId) {
     this.body = document.getElementById(elementId);
+    this.eax = new P();
     return this;
 }
 
@@ -17,20 +18,20 @@ Controller.prototype.manipulates = function(model, view) {
 
 Controller.prototype.move = function (event) {
     if(!this.ready || this.model.race.players.length < 1) return;
-    let p = this.view.getModelCoords(event);
-    this.model.updateMove(p);
+    this.view.getModelCoords(event, this.eax);
+    this.model.updateMove(this.eax);
 }
 
 Controller.prototype.down = function (event) {
     if(!this.ready || this.model.race.players.length < 1) return;
-    let p = this.view.getModelCoords(event);
-    this.model.initializeMove(p);
+    this.view.getModelCoords(event, this.eax);
+    this.model.initializeMove(this.eax);
 }
 
 Controller.prototype.up = function (event) {
     if(!this.ready || this.model.race.players.length < 1) return;
-    let p = this.view.getModelCoords(event);
-    this.model.finalizeMove(p);
+    this.view.getModelCoords(event, this.eax);
+    this.model.finalizeMove(this.eax);
 }
 
 Controller.prototype.resizePaper = function(e) {

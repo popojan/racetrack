@@ -1,22 +1,26 @@
 Raphael = new (function(){})();
+
 function bezierDerivative(t, P0, P1, P2, output) {
-    output.x = 2*(1-t)*(P1.x-P0.x) + 2*t*(P2.x-P1.x);
-    output.y = 2*(1-t)*(P1.y-P0.y) + 2*t*(P2.y-P1.y);
-    return output;
+    return output.mov(P1.sub(P0).mul(2*(1-t))).add(P2.sub(P1).mul(2*t));
 }
 
 function bezierPoint(t, P0, P1, P2, output) {
-    output.x = P1.x + (1-t)*(1-t)*(P0.x-P1.x) + t*t * (P2.x-P1.x);
-    output.y = P1.y + (1-t)*(1-t)*(P0.y-P1.y) + t*t * (P2.y-P1.y);
-    return output;
+    return output.mov(P1).add(P0.sub(P1).mul((1-t)*(1-t))).add(P2.sub(P1).mul(t*t));
 }
 
 function getTangentPoint(t, A, b, B, p0, p1) {
-    bezierDerivative(t, A, b, B, p0);
-    bezierPoint(t, A, b, B, p1);
-    p0.x = p1.x - p0.x;
-    p0.y = p1.y - p0.y;
+    if(t < 1 && t > 0) {
+        bezierPoint(t, A, b, B, p1);
+        p0.mov(p1).sub(A.mul(-2 / (1 - t))).sub(B.mul((2 / t)));
+    } else if(t >= 1) {
+        p1.mov(B);
+        p0.mov(p1).sub(B.sub(b).n());
+    } else if (t <= 0) {
+        p1.mov(A);
+        p0.mov(p1).sub(b.sub(A).n());
+    }
 }
+
 Raphael.findDotsAtSegment = function (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t) {
     let t1 = 1 - t,
         t13 = Math.pow(t1, 3),
@@ -45,57 +49,3 @@ Raphael.findDotsAtSegment = function (p1x, p1y, c1x, c1y, c2x, c2y, p2x, p2y, t)
         alpha: alpha
     };
 };
-
-function intersectionQuadraticCircle(a1x, a1y, bx, by, a2x, a2y, cx, cy, r) {
-    let kevinPath = new Circle();
-    kevinPath.center.point.x = cx;
-    kevinPath.center.point.y = cy;
-    kevinPath.radius.point.x = cx + r;
-    kevinPath.radius.point.y = cy;
-    kevinPath.getIntersectionParams();
-    let inter = new Intersection("I");
-    inter.t = 2;
-    let kevinLine = new Path();
-    kevinLine.parseData("M0,0 S1,1,1,1");
-    kevinLine.getIntersectionParams();
-    kevinLine.segments[0].handles[0].point.x = a1x;
-    kevinLine.segments[0].handles[0].point.y = a1y;
-    kevinLine.segments[1].handles[0].point.x = bx;
-    kevinLine.segments[1].handles[0].point.y = by;
-    kevinLine.segments[1].handles[1].point.x = a2x;
-    kevinLine.segments[1].handles[1].point.y = a2y;
-
-    intersectShapes(kevinPath, kevinLine, inter);
-    if (inter.t < 2) {
-        let closest = inter.point;
-        let collisionT = inter.t;
-        let collision = 1;
-        return {t: inter.t, p: closest};
-    }
-    return false;
-}
-
-function intersectionSegmentCircle(ax, ay, bx, by, cx, cy, r) {
-    let dx = bx - ax;
-    let dy = by - ay;
-    let fx = ax - cx;
-    let fy = ay - cy;
-    let a = dx*dx + dy*dy;
-    let b = 2 * (fx*dx + fy*dy);
-    let c = fx*fx + fy*fy - r*r;
-    let D = b*b-4*a*c;
-    if(D < 0)
-        return false;
-    D = Math.sqrt(D);
-    let t1 = (-b - D)/(2*a);
-    let t2 = (-b + D)/(2*a);
-    t1 = Math.min(t1, t2);
-    t2 = Math.max(t1, t2);
-    if(t1 >= 0 && t1 <= 1)
-        return t1;
-    if(t2 >= 0 && t2 <= 1)
-        return t2;
-    if(t1 < 0 && t2  > 0)
-        return true;
-    return false;
-}

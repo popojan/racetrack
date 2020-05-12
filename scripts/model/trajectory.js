@@ -76,17 +76,17 @@ Trajectory.prototype.evaluate = function(i, moves) {
     points.sort(function(a, b) {return (a.t - b.t);});
     let parity = 0;
     for (let j = 0; j < i; ++j) {
-        parity += this.getMove(j).result.intersections.points.length;
+        parity += this.getMove(j).result.intersections.count;
     }
     let offTrackFraction = 0.0;
     let ts = [];
     if (parity % 2 === 1) {
         ts.push(0.0);
     }
-    for (let j = 0; j < points.length; ++j) {
+    for (let j = 0; j < intersections.count; ++j) {
         ts.push(points[j].t);
     }
-    if ((parity + points.length) % 2 === 1) {
+    if ((parity + intersections.count) % 2 === 1) {
         ts.push(1.0);
     }
     for (let j = 1; j < ts.length; j += 2) {
@@ -158,7 +158,7 @@ Trajectory.prototype.crash = function(i) {
     kevinLine.segments[1].handles[0].point.y = b.y;
     kevinLine.segments[1].handles[1].point.x = B.x;
     kevinLine.segments[1].handles[1].point.y = B.y;
-    let inter = new Intersection("I");
+    let inter = new Intersection("I", 10);
     inter.t = 2;
     return intersectShapes(this.track.collisionPath, kevinLine, inter);
 };

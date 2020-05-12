@@ -7,35 +7,38 @@
  *   A Perl utility written by Kevin Lindsey (kevin@kevlindev.com)
  *
  *****/
-//Array.prototype.foreach=function(func){var length=this.length;for(var i=0;i<length;i++){func(this[i]);}};
-//Array.prototype.grep=function(func){var length=this.length;var result=[];for(var i=0;i<length;i++){var elem=this[i];if(func(elem)){result.push(elem);}}return result;};
-//Array.prototype.map=function(func){var length=this.length;var result=[];for(var i=0;i<length;i++){result.push(func(this[i]));}return result;};
-//Array.prototype.min=function(){var length=this.length;var min=this[0];for(var i=0;i<length;i++){var elem=this[i];if(elem<min)min=elem;}return min;}
-//Array.prototype.max=function(){var length=this.length;var max=this[0];for(var i=0;i<length;i++)var elem=this[i];if(elem>max)max=elem;return max;}
+//Array.prototype.foreach=function(func){let length=this.length;for(let i=0;i<length;i++){func(this[i]);}};
+//Array.prototype.grep=function(func){let length=this.length;let result=[];for(let i=0;i<length;i++){let elem=this[i];if(func(elem)){result.push(elem);}}return result;};
+//Array.prototype.map=function(func){let length=this.length;let result=[];for(let i=0;i<length;i++){result.push(func(this[i]));}return result;};
+//Array.prototype.min=function(){let length=this.length;let min=this[0];for(let i=0;i<length;i++){let elem=this[i];if(elem<min)min=elem;}return min;}
+//Array.prototype.max=function(){let length=this.length;let max=this[0];for(let i=0;i<length;i++)let elem=this[i];if(elem>max)max=elem;return max;}
 "use strict";
-var svgns = "http://www.w3.org/2000/svg";
-function Intersection(s) {
+let svgns = "http://www.w3.org/2000/svg";
+function Intersection(s, capacity) {
     this.status = s;
+    this.count = 0;
     this.points = [];
-    this.t = 2;
+    for(let i = 0; i < capacity; ++i) {
+        this.points.push({x:null,y:null,t:2.0});
+    }
 };
 Intersection.prototype.appendPoint = function (point, t) {
-    if(t >= 0 && t< 1)
-        this.points.push({t:t, point:point});
-    /*if (t < this.t) {
-        this.t = t;
-        this.point = point;
-    }*/
+    if(t >= 0 && t< 1) {
+
+        this.points[this.count].x = point.x;
+        this.points[this.count].y = point.y;
+        this.points[this.count].t = t;
+        this.count += 1;
+    }
 };
 Intersection.prototype.appendPoints = function (points, ts) {
-    for (i = 0; i < points.length; i++) {
-        if(ts[i]  >= 0 && ts[i] < 1)
-            this.points.push({t: ts[i], point: points[i]});
+    for (let i = 0; i < points.length; i++) {
+        this.appendPoint(points[i], ts[i]);
     }
 };
 function intersectShapes (shape1, shape2, result) {
-    var ip1 = shape1.ip;//getIntersectionParams();
-    var ip2 = shape2.ip;//getIntersectionParams();
+    let ip1 = shape1.ip;//getIntersectionParams();
+    let ip2 = shape2.ip;//getIntersectionParams();
     if (ip1 != null && ip2 != null) {
         if (ip1.name == "Path") {
             Intersection.intersectPathShape(shape1, shape2, result);
@@ -45,8 +48,8 @@ function intersectShapes (shape1, shape2, result) {
             
         }
         else {
-            var method;
-            var params;
+            let method;
+            let params;
             if (ip1.name < ip2.name) {
                 method = "intersect" + ip1.name + ip2.name;
                 params = ip1.params.concat(ip2.params);
@@ -67,11 +70,11 @@ function intersectPathShape (path, shape, result) {
 };
 
 Intersection.intersectBezier2Bezier2 = function (a1, a2, a3, b1, b2, b3) {
-    var a, b;
-    var c12, c11, c10;
-    var c22, c21, c20;
-    var TOLERANCE = 1e-4;
-    var result = new Intersection("No Intersection");
+    let a, b;
+    let c12, c11, c10;
+    let c22, c21, c20;
+    let TOLERANCE = 1e-4;
+    let result = new Intersection("No Intersection");
     a = a2.multiply(-2);
     c12 = a1.add(a.add(a3));
     a = a1.multiply(-2);
@@ -84,25 +87,25 @@ Intersection.intersectBezier2Bezier2 = function (a1, a2, a3, b1, b2, b3) {
     b = b2.multiply(2);
     c21 = a.add(b);
     c20 = new Point2D(b1.x, b1.y);
-    var a = c12.x * c11.y - c11.x * c12.y;
-    var b = c22.x * c11.y - c11.x * c22.y;
-    var c = c21.x * c11.y - c11.x * c21.y;
-    var d = c11.x * (c10.y - c20.y) + c11.y * (-c10.x + c20.x);
-    var e = c22.x * c12.y - c12.x * c22.y;
-    var f = c21.x * c12.y - c12.x * c21.y;
-    var g = c12.x * (c10.y - c20.y) + c12.y * (-c10.x + c20.x);
-    var poly = new Polynomial(-e * e, -2 * e * f, a * b - f * f - 2 * e * g, a * c - 2 * f * g, a * d - g * g);
-    var roots = poly.getRoots();
-    for (var i = 0; i < roots.length; i++) {
-        var s = roots[i];
+    a = c12.x * c11.y - c11.x * c12.y;
+    b = c22.x * c11.y - c11.x * c22.y;
+    let c = c21.x * c11.y - c11.x * c21.y;
+    let d = c11.x * (c10.y - c20.y) + c11.y * (-c10.x + c20.x);
+    let e = c22.x * c12.y - c12.x * c22.y;
+    let f = c21.x * c12.y - c12.x * c21.y;
+    let g = c12.x * (c10.y - c20.y) + c12.y * (-c10.x + c20.x);
+    let poly = new Polynomial(-e * e, -2 * e * f, a * b - f * f - 2 * e * g, a * c - 2 * f * g, a * d - g * g);
+    let roots = poly.getRoots();
+    for (let i = 0; i < roots.length; i++) {
+        let s = roots[i];
         if (0 <= s && s <= 1) {
-            var xRoots = new Polynomial(-c12.x, -c11.x, -c10.x + c20.x + s * c21.x + s * s * c22.x).getRoots();
-            var yRoots = new Polynomial(-c12.y, -c11.y, -c10.y + c20.y + s * c21.y + s * s * c22.y).getRoots();
+            let xRoots = new Polynomial(-c12.x, -c11.x, -c10.x + c20.x + s * c21.x + s * s * c22.x).getRoots();
+            let yRoots = new Polynomial(-c12.y, -c11.y, -c10.y + c20.y + s * c21.y + s * s * c22.y).getRoots();
             if (xRoots.length > 0 && yRoots.length > 0) {
-                checkRoots: for (var j = 0; j < xRoots.length; j++) {
-                    var xRoot = xRoots[j];
+                checkRoots: for (let j = 0; j < xRoots.length; j++) {
+                    let xRoot = xRoots[j];
                     if (0 <= xRoot && xRoot <= 1) {
-                        for (var k = 0; k < yRoots.length; k++) {
+                        for (let k = 0; k < yRoots.length; k++) {
                             if (Math.abs(xRoot - yRoots[k]) < TOLERANCE) {
                                 result.t.push(xRoot);
                                 result.points.push(c22.multiply(s * s).add(c21.multiply(s).add(c20)));
@@ -119,10 +122,10 @@ Intersection.intersectBezier2Bezier2 = function (a1, a2, a3, b1, b2, b3) {
 Intersection.intersectBezier2Bezier3 = ib2b3;
 
 function ib2b3(a1, a2, a3, b1, b2, b3, b4) {
-    result = null;
-    var a, b, c, d;
-    var c12, c11, c10;
-    var c23, c22, c21, c20;
+    let result = null;
+    let a, b, c, d;
+    let c12, c11, c10;
+    let c23, c22, c21, c20;
     a = a2.multiply(-2);
     c12 = a1.add(a.add(a3));
     a = a1.multiply(-2);
@@ -144,32 +147,32 @@ function ib2b3(a1, a2, a3, b1, b2, b3, b4) {
     c = a.add(b);
     c21 = new Vector2D(c.x, c.y);
     c20 = new Vector2D(b1.x, b1.y);
-    var c10x2 = c10.x * c10.x;
-    var c10y2 = c10.y * c10.y;
-    var c11x2 = c11.x * c11.x;
-    var c11y2 = c11.y * c11.y;
-    var c12x2 = c12.x * c12.x;
-    var c12y2 = c12.y * c12.y;
-    var c20x2 = c20.x * c20.x;
-    var c20y2 = c20.y * c20.y;
-    var c21x2 = c21.x * c21.x;
-    var c21y2 = c21.y * c21.y;
-    var c22x2 = c22.x * c22.x;
-    var c22y2 = c22.y * c22.y;
-    var c23x2 = c23.x * c23.x;
-    var c23y2 = c23.y * c23.y;
-    var poly = new Polynomial(-2 * c12.x * c12.y * c23.x * c23.y + c12x2 * c23y2 + c12y2 * c23x2, -2 * c12.x * c12.y * c22.x * c23.y - 2 * c12.x * c12.y * c22.y * c23.x + 2 * c12y2 * c22.x * c23.x + 2 * c12x2 * c22.y * c23.y, -2 * c12.x * c21.x * c12.y * c23.y - 2 * c12.x * c12.y * c21.y * c23.x - 2 * c12.x * c12.y * c22.x * c22.y + 2 * c21.x * c12y2 * c23.x + c12y2 * c22x2 + c12x2 * (2 * c21.y * c23.y + c22y2), 2 * c10.x * c12.x * c12.y * c23.y + 2 * c10.y * c12.x * c12.y * c23.x + c11.x * c11.y * c12.x * c23.y + c11.x * c11.y * c12.y * c23.x - 2 * c20.x * c12.x * c12.y * c23.y - 2 * c12.x * c20.y * c12.y * c23.x - 2 * c12.x * c21.x * c12.y * c22.y - 2 * c12.x * c12.y * c21.y * c22.x - 2 * c10.x * c12y2 * c23.x - 2 * c10.y * c12x2 * c23.y + 2 * c20.x * c12y2 * c23.x + 2 * c21.x * c12y2 * c22.x - c11y2 * c12.x * c23.x - c11x2 * c12.y * c23.y + c12x2 * (2 * c20.y * c23.y + 2 * c21.y * c22.y), 2 * c10.x * c12.x * c12.y * c22.y + 2 * c10.y * c12.x * c12.y * c22.x + c11.x * c11.y * c12.x * c22.y + c11.x * c11.y * c12.y * c22.x - 2 * c20.x * c12.x * c12.y * c22.y - 2 * c12.x * c20.y * c12.y * c22.x - 2 * c12.x * c21.x * c12.y * c21.y - 2 * c10.x * c12y2 * c22.x - 2 * c10.y * c12x2 * c22.y + 2 * c20.x * c12y2 * c22.x - c11y2 * c12.x * c22.x - c11x2 * c12.y * c22.y + c21x2 * c12y2 + c12x2 * (2 * c20.y * c22.y + c21y2), 2 * c10.x * c12.x * c12.y * c21.y + 2 * c10.y * c12.x * c21.x * c12.y + c11.x * c11.y * c12.x * c21.y + c11.x * c11.y * c21.x * c12.y - 2 * c20.x * c12.x * c12.y * c21.y - 2 * c12.x * c20.y * c21.x * c12.y - 2 * c10.x * c21.x * c12y2 - 2 * c10.y * c12x2 * c21.y + 2 * c20.x * c21.x * c12y2 - c11y2 * c12.x * c21.x - c11x2 * c12.y * c21.y + 2 * c12x2 * c20.y * c21.y, -2 * c10.x * c10.y * c12.x * c12.y - c10.x * c11.x * c11.y * c12.y - c10.y * c11.x * c11.y * c12.x + 2 * c10.x * c12.x * c20.y * c12.y + 2 * c10.y * c20.x * c12.x * c12.y + c11.x * c20.x * c11.y * c12.y + c11.x * c11.y * c12.x * c20.y - 2 * c20.x * c12.x * c20.y * c12.y - 2 * c10.x * c20.x * c12y2 + c10.x * c11y2 * c12.x + c10.y * c11x2 * c12.y - 2 * c10.y * c12x2 * c20.y - c20.x * c11y2 * c12.x - c11x2 * c20.y * c12.y + c10x2 * c12y2 + c10y2 * c12x2 + c20x2 * c12y2 + c12x2 * c20y2);
-    var roots = poly.getRootsInInterval(0, 1);
-    for (var i = 0; i < roots.length; i++) {
-        var s = roots[i];
-        var xRoots = new Polynomial(c12.x, c11.x, c10.x - c20.x - s * c21.x - s * s * c22.x - s * s * s * c23.x).getRoots();
-        var yRoots = new Polynomial(c12.y, c11.y, c10.y - c20.y - s * c21.y - s * s * c22.y - s * s * s * c23.y).getRoots();
+    let c10x2 = c10.x * c10.x;
+    let c10y2 = c10.y * c10.y;
+    let c11x2 = c11.x * c11.x;
+    let c11y2 = c11.y * c11.y;
+    let c12x2 = c12.x * c12.x;
+    let c12y2 = c12.y * c12.y;
+    let c20x2 = c20.x * c20.x;
+    let c20y2 = c20.y * c20.y;
+    let c21x2 = c21.x * c21.x;
+    let c21y2 = c21.y * c21.y;
+    let c22x2 = c22.x * c22.x;
+    let c22y2 = c22.y * c22.y;
+    let c23x2 = c23.x * c23.x;
+    let c23y2 = c23.y * c23.y;
+    let poly = new Polynomial(-2 * c12.x * c12.y * c23.x * c23.y + c12x2 * c23y2 + c12y2 * c23x2, -2 * c12.x * c12.y * c22.x * c23.y - 2 * c12.x * c12.y * c22.y * c23.x + 2 * c12y2 * c22.x * c23.x + 2 * c12x2 * c22.y * c23.y, -2 * c12.x * c21.x * c12.y * c23.y - 2 * c12.x * c12.y * c21.y * c23.x - 2 * c12.x * c12.y * c22.x * c22.y + 2 * c21.x * c12y2 * c23.x + c12y2 * c22x2 + c12x2 * (2 * c21.y * c23.y + c22y2), 2 * c10.x * c12.x * c12.y * c23.y + 2 * c10.y * c12.x * c12.y * c23.x + c11.x * c11.y * c12.x * c23.y + c11.x * c11.y * c12.y * c23.x - 2 * c20.x * c12.x * c12.y * c23.y - 2 * c12.x * c20.y * c12.y * c23.x - 2 * c12.x * c21.x * c12.y * c22.y - 2 * c12.x * c12.y * c21.y * c22.x - 2 * c10.x * c12y2 * c23.x - 2 * c10.y * c12x2 * c23.y + 2 * c20.x * c12y2 * c23.x + 2 * c21.x * c12y2 * c22.x - c11y2 * c12.x * c23.x - c11x2 * c12.y * c23.y + c12x2 * (2 * c20.y * c23.y + 2 * c21.y * c22.y), 2 * c10.x * c12.x * c12.y * c22.y + 2 * c10.y * c12.x * c12.y * c22.x + c11.x * c11.y * c12.x * c22.y + c11.x * c11.y * c12.y * c22.x - 2 * c20.x * c12.x * c12.y * c22.y - 2 * c12.x * c20.y * c12.y * c22.x - 2 * c12.x * c21.x * c12.y * c21.y - 2 * c10.x * c12y2 * c22.x - 2 * c10.y * c12x2 * c22.y + 2 * c20.x * c12y2 * c22.x - c11y2 * c12.x * c22.x - c11x2 * c12.y * c22.y + c21x2 * c12y2 + c12x2 * (2 * c20.y * c22.y + c21y2), 2 * c10.x * c12.x * c12.y * c21.y + 2 * c10.y * c12.x * c21.x * c12.y + c11.x * c11.y * c12.x * c21.y + c11.x * c11.y * c21.x * c12.y - 2 * c20.x * c12.x * c12.y * c21.y - 2 * c12.x * c20.y * c21.x * c12.y - 2 * c10.x * c21.x * c12y2 - 2 * c10.y * c12x2 * c21.y + 2 * c20.x * c21.x * c12y2 - c11y2 * c12.x * c21.x - c11x2 * c12.y * c21.y + 2 * c12x2 * c20.y * c21.y, -2 * c10.x * c10.y * c12.x * c12.y - c10.x * c11.x * c11.y * c12.y - c10.y * c11.x * c11.y * c12.x + 2 * c10.x * c12.x * c20.y * c12.y + 2 * c10.y * c20.x * c12.x * c12.y + c11.x * c20.x * c11.y * c12.y + c11.x * c11.y * c12.x * c20.y - 2 * c20.x * c12.x * c20.y * c12.y - 2 * c10.x * c20.x * c12y2 + c10.x * c11y2 * c12.x + c10.y * c11x2 * c12.y - 2 * c10.y * c12x2 * c20.y - c20.x * c11y2 * c12.x - c11x2 * c20.y * c12.y + c10x2 * c12y2 + c10y2 * c12x2 + c20x2 * c12y2 + c12x2 * c20y2);
+    let roots = poly.getRootsInInterval(0, 1);
+    for (let i = 0; i < roots.length; i++) {
+        let s = roots[i];
+        let xRoots = new Polynomial(c12.x, c11.x, c10.x - c20.x - s * c21.x - s * s * c22.x - s * s * s * c23.x).getRoots();
+        let yRoots = new Polynomial(c12.y, c11.y, c10.y - c20.y - s * c21.y - s * s * c22.y - s * s * s * c23.y).getRoots();
         if (xRoots.length > 0 && yRoots.length > 0) {
-            var TOLERANCE = 1e-4;
-            checkRoots: for (var j = 0; j < xRoots.length; j++) {
-                var xRoot = xRoots[j];
+            let TOLERANCE = 1e-4;
+            checkRoots: for (let j = 0; j < xRoots.length; j++) {
+                let xRoot = xRoots[j];
                 if (0 <= xRoot && xRoot <= 1) {
-                    for (var k = 0; k < yRoots.length; k++) {
+                    for (let k = 0; k < yRoots.length; k++) {
                         if (Math.abs(xRoot - yRoots[k]) < TOLERANCE) {
                             if (result == null) result = new Intersection("Intersection");
                             result.appendPoint(c23.multiply(s * s * s).add(c22.multiply(s * s).add(c21.multiply(s).add(c20))), 1.0 - s);
@@ -186,20 +189,20 @@ Intersection.intersectBezier2Circle = function (p1, p2, p3, c, r) {
     return Intersection.intersectBezier2Ellipse(p1, p2, p3, c, r, r);
 };
 Intersection.intersectBezier2Ellipse = function (p1, p2, p3, ec, rx, ry) {
-    var a, b;
-    var c2, c1, c0;
-    var result = new Intersection("No Intersection");
+    let a, b;
+    let c2, c1, c0;
+    let result = new Intersection("No Intersection");
     a = p2.multiply(-2);
     c2 = p1.add(a.add(p3));
     a = p1.multiply(-2);
     b = p2.multiply(2);
     c1 = a.add(b);
     c0 = new Point2D(p1.x, p1.y);
-    var rxrx = rx * rx;
-    var ryry = ry * ry;
-    var roots = new Polynomial(ryry * c2.x * c2.x + rxrx * c2.y * c2.y, 2 * (ryry * c2.x * c1.x + rxrx * c2.y * c1.y), ryry * (2 * c2.x * c0.x + c1.x * c1.x) + rxrx * (2 * c2.y * c0.y + c1.y * c1.y) - 2 * (ryry * ec.x * c2.x + rxrx * ec.y * c2.y), 2 * (ryry * c1.x * (c0.x - ec.x) + rxrx * c1.y * (c0.y - ec.y)), ryry * (c0.x * c0.x + ec.x * ec.x) + rxrx * (c0.y * c0.y + ec.y * ec.y) - 2 * (ryry * ec.x * c0.x + rxrx * ec.y * c0.y) - rxrx * ryry).getRoots();
-    for (var i = 0; i < roots.length; i++) {
-        var t = roots[i];
+    let rxrx = rx * rx;
+    let ryry = ry * ry;
+    let roots = new Polynomial(ryry * c2.x * c2.x + rxrx * c2.y * c2.y, 2 * (ryry * c2.x * c1.x + rxrx * c2.y * c1.y), ryry * (2 * c2.x * c0.x + c1.x * c1.x) + rxrx * (2 * c2.y * c0.y + c1.y * c1.y) - 2 * (ryry * ec.x * c2.x + rxrx * ec.y * c2.y), 2 * (ryry * c1.x * (c0.x - ec.x) + rxrx * c1.y * (c0.y - ec.y)), ryry * (c0.x * c0.x + ec.x * ec.x) + rxrx * (c0.y * c0.y + ec.y * ec.y) - 2 * (ryry * ec.x * c0.x + rxrx * ec.y * c0.y) - rxrx * ryry).getRoots();
+    for (let i = 0; i < roots.length; i++) {
+        let t = roots[i];
         if (0 <= t && t <= 1) {
             result.points.push(c2.multiply(t * t).add(c1.multiply(t).add(c0)));
         }
@@ -208,13 +211,13 @@ Intersection.intersectBezier2Ellipse = function (p1, p2, p3, ec, rx, ry) {
     return result;
 };
 Intersection.intersectBezier2Line = function (p1, p2, p3, a1, a2) {
-    var a, b;
-    var c2, c1, c0;
-    var cl;
-    var n;
-    var min = a1.min(a2);
-    var max = a1.max(a2);
-    var result = new Intersection("No Intersection");
+    let a, b;
+    let c2, c1, c0;
+    let cl;
+    let n;
+    let min = a1.min(a2);
+    let max = a1.max(a2);
+    let result = new Intersection("No Intersection");
     a = p2.multiply(-2);
     c2 = p1.add(a.add(p3));
     a = p1.multiply(-2);
@@ -223,13 +226,13 @@ Intersection.intersectBezier2Line = function (p1, p2, p3, a1, a2) {
     c0 = new Point2D(p1.x, p1.y);
     n = new Vector2D(a1.y - a2.y, a2.x - a1.x);
     cl = a1.x * a2.y - a2.x * a1.y;
-    roots = new Polynomial(n.dot(c2), n.dot(c1), n.dot(c0) + cl).getRoots();
-    for (var i = 0; i < roots.length; i++) {
-        var t = roots[i];
+    let roots = new Polynomial(n.dot(c2), n.dot(c1), n.dot(c0) + cl).getRoots();
+    for (let i = 0; i < roots.length; i++) {
+        let t = roots[i];
         if (0 <= t && t <= 1) {
-            var p4 = p1.lerp(p2, t);
-            var p5 = p2.lerp(p3, t);
-            var p6 = p4.lerp(p5, t);
+            let p4 = p1.lerp(p2, t);
+            let p5 = p2.lerp(p3, t);
+            let p6 = p4.lerp(p5, t);
             if (a1.x == a2.x) {
                 if (min.y <= p6.y && p6.y <= max.y) {
                     result.status = "Intersection";
@@ -249,27 +252,27 @@ Intersection.intersectBezier2Line = function (p1, p2, p3, a1, a2) {
     return result;
 };
 Intersection.intersectBezier2Polygon = function (p1, p2, p3, points) {
-    var result = new Intersection("No Intersection");
-    var length = points.length;
-    for (var i = 0; i < length; i++) {
-        var a1 = points[i];
-        var a2 = points[(i + 1) % length];
-        var inter = Intersection.intersectBezier2Line(p1, p2, p3, a1, a2);
+    let result = new Intersection("No Intersection");
+    let length = points.length;
+    for (let i = 0; i < length; i++) {
+        let a1 = points[i];
+        let a2 = points[(i + 1) % length];
+        let inter = Intersection.intersectBezier2Line(p1, p2, p3, a1, a2);
         result.appendPoints(inter.points, inter.t);
     }
     if (result.points.length > 0) result.status = "Intersection";
     return result;
 };
 Intersection.intersectBezier2Rectangle = function (p1, p2, p3, r1, r2) {
-    var min = r1.min(r2);
-    var max = r1.max(r2);
-    var topRight = new Point2D(max.x, min.y);
-    var bottomLeft = new Point2D(min.x, max.y);
-    var inter1 = Intersection.intersectBezier2Line(p1, p2, p3, min, topRight);
-    var inter2 = Intersection.intersectBezier2Line(p1, p2, p3, topRight, max);
-    var inter3 = Intersection.intersectBezier2Line(p1, p2, p3, max, bottomLeft);
-    var inter4 = Intersection.intersectBezier2Line(p1, p2, p3, bottomLeft, min);
-    var result = new Intersection("No Intersection");
+    let min = r1.min(r2);
+    let max = r1.max(r2);
+    let topRight = new Point2D(max.x, min.y);
+    let bottomLeft = new Point2D(min.x, max.y);
+    let inter1 = Intersection.intersectBezier2Line(p1, p2, p3, min, topRight);
+    let inter2 = Intersection.intersectBezier2Line(p1, p2, p3, topRight, max);
+    let inter3 = Intersection.intersectBezier2Line(p1, p2, p3, max, bottomLeft);
+    let inter4 = Intersection.intersectBezier2Line(p1, p2, p3, bottomLeft, min);
+    let result = new Intersection("No Intersection");
     result.appendPoints(inter1.points, inter.t);
     result.appendPoints(inter2.points, inter2.t);
     result.appendPoints(inter3.points, inter3.t);
@@ -279,123 +282,123 @@ Intersection.intersectBezier2Rectangle = function (p1, p2, p3, r1, r2) {
 };
 Intersection.intersectBezier3Bezier3 = ib3b3;
 
-function ib3b3(a1, a2, a3, a4, b1, b2, b3, b4, result) {
-    var minax = Math.min(a1.x, a2.x, a3.x, a4.x);
-    var minay = Math.min(a1.y, a2.y, a3.y, a4.y);
-    var minbx = Math.min(b1.x, b2.x, b3.x, b4.x);
-    var minby = Math.min(b1.y, b2.y, b3.y, b4.y);
-    var maxax = Math.max(a1.x, a2.x, a3.x, a4.x);
-    var maxay = Math.max(a1.y, a2.y, a3.y, a4.y);
-    var maxbx = Math.max(b1.x, b2.x, b3.x, b4.x);
-    var maxby = Math.max(b1.y, b2.y, b3.y, b4.y);
-    var possiblex = false;
+function ib3b3(pa1, pa2, pa3, pa4, pb1, pb2, pb3, pb4, result) {
+    let minax = Math.min(pa1.x, pa2.x, pa3.x, pa4.x);
+    let minay = Math.min(pa1.y, pa2.y, pa3.y, pa4.y);
+    let minbx = Math.min(pb1.x, pb2.x, pb3.x, pb4.x);
+    let minby = Math.min(pb1.y, pb2.y, pb3.y, pb4.y);
+    let maxax = Math.max(pa1.x, pa2.x, pa3.x, pa4.x);
+    let maxay = Math.max(pa1.y, pa2.y, pa3.y, pa4.y);
+    let maxbx = Math.max(pb1.x, pb2.x, pb3.x, pb4.x);
+    let maxby = Math.max(pb1.y, pb2.y, pb3.y, pb4.y);
+    let possiblex = false;
     if((minax >= minbx && minax <= maxbx) ||(minbx >= minax && minbx <= maxax))
         possiblex = true;
-    var possibley = false;
+    let possibley = false;
     if((minay >= minby && minay <= maxby) ||(minby >= minay && minby <= maxay))       possibley = true;
     if(possiblex == false || possibley == false) return result;
     //m("before ib3b3");
-    var ax, ay, bx, by, cx, cy, dx, dy;
-    var c13x, c13y, c12x, c12y, c11x, c11y, c10x, c10y;
-    var c23x, c23y, c22x, c22y, c21x, c21y, c20x, c20y;
-    ax = a1.x * -1;
-    ay = a1.y * -1;
-    bx = a2.x * 3;
-    by = a2.y * 3;
-    cx = a3.x * -3;
-    cy = a3.y * -3;
-    dx = ax + bx + cx + a4.x;
-    dy = ay + by + cy + a4.y;
+    let ax, ay, bx, by, cx, cy, dx, dy;
+    let c13x, c13y, c12x, c12y, c11x, c11y, c10x, c10y;
+    let c23x, c23y, c22x, c22y, c21x, c21y, c20x, c20y;
+    ax = pa1.x * -1;
+    ay = pa1.y * -1;
+    bx = pa2.x * 3;
+    by = pa2.y * 3;
+    cx = pa3.x * -3;
+    cy = pa3.y * -3;
+    dx = ax + bx + cx + pa4.x;
+    dy = ay + by + cy + pa4.y;
     c13x = dx;
     c13y = dy;
-    ax = a1.x * 3;
-    ay = a1.y * 3;
-    bx = a2.x * -6;
-    by = a2.y * -6;
-    cx = a3.x * 3;
-    cy = a3.y * 3;
+    ax = pa1.x * 3;
+    ay = pa1.y * 3;
+    bx = pa2.x * -6;
+    by = pa2.y * -6;
+    cx = pa3.x * 3;
+    cy = pa3.y * 3;
     dx = ax + bx + cx;
     dy = ay + by + cy;
     c12x = dx;
     c12y = dy;
-    ax = a1.x * -3;
-    ay = a1.y * -3;
-    bx = a2.x * 3;
-    by = a2.y * 3;
+    ax = pa1.x * -3;
+    ay = pa1.y * -3;
+    bx = pa2.x * 3;
+    by = pa2.y * 3;
     cx = ax + bx;
     cy = ay + by;
     c11x = cx;
     c11y = cy;
-    c10x = a1.x;
-    c10y = a1.y;
-    ax = b1.x * -1;
-    ay = b1.y * -1;
-    bx = b2.x * 3;
-    by = b2.y * 3;
-    cx = b3.x * -3;
-    cy = b3.y * -3;
-    dx = ax + bx + cx + b4.x;
-    dy = ay + by + cy + b4.y;
+    c10x = pa1.x;
+    c10y = pa1.y;
+    ax = pb1.x * -1;
+    ay = pb1.y * -1;
+    bx = pb2.x * 3;
+    by = pb2.y * 3;
+    cx = pb3.x * -3;
+    cy = pb3.y * -3;
+    dx = ax + bx + cx + pb4.x;
+    dy = ay + by + cy + pb4.y;
     c23x = dx;
     c23y = dy;
-    ax = b1.x * 3;
-    ay = b1.y * 3;
-    bx = b2.x * -6;
-    by = b2.y * -6;
-    cx = b3.x * 3;
-    cy = b3.y * 3;
+    ax = pb1.x * 3;
+    ay = pb1.y * 3;
+    bx = pb2.x * -6;
+    by = pb2.y * -6;
+    cx = pb3.x * 3;
+    cy = pb3.y * 3;
     dx = ax + bx + cx;
     dy = ay + by + cy;
     c22x = dx;
     c22y = dy;
-    ax = b1.x * -3;
-    ay = b1.y * -3;
-    bx = b2.x * 3;
-    by = b2.y * 3;
+    ax = pb1.x * -3;
+    ay = pb1.y * -3;
+    bx = pb2.x * 3;
+    by = pb2.y * 3;
     cx = ax + bx;
     cy = ay + by;
     c21x = cx;
     c21y = cy;
-    c20x = b1.x;
-    c20y = b1.y;
-    var c10x2 = c10x * c10x;
-    var c10x3 = c10x * c10x * c10x;
-    var c10y2 = c10y * c10y;
-    var c10y3 = c10y * c10y * c10y;
-    var c11x2 = c11x * c11x;
-    var c11x3 = c11x * c11x * c11x;
-    var c11y2 = c11y * c11y;
-    var c11y3 = c11y * c11y * c11y;
-    var c12x2 = c12x * c12x;
-    var c12x3 = c12x * c12x * c12x;
-    var c12y2 = c12y * c12y;
-    var c12y3 = c12y * c12y * c12y;
-    var c13x2 = c13x * c13x;
-    var c13x3 = c13x * c13x * c13x;
-    var c13y2 = c13y * c13y;
-    var c13y3 = c13y * c13y * c13y;
-    var c20x2 = c20x * c20x;
-    var c20x3 = c20x * c20x * c20x;
-    var c20y2 = c20y * c20y;
-    var c20y3 = c20y * c20y * c20y;
-    var c21x2 = c21x * c21x;
-    var c21x3 = c21x * c21x * c21x;
-    var c21y2 = c21y * c21y;
-    var c22x2 = c22x * c22x;
-    var c22x3 = c22x * c22x * c22x;
-    var c22y2 = c22y * c22y;
-    var c23x2 = c23x * c23x;
-    var c23x3 = c23x * c23x * c23x;
-    var c23y2 = c23y * c23y;
-    var c23y3 = c23y * c23y * c23y;
+    c20x = pb1.x;
+    c20y = pb1.y;
+    let c10x2 = c10x * c10x;
+    let c10x3 = c10x * c10x * c10x;
+    let c10y2 = c10y * c10y;
+    let c10y3 = c10y * c10y * c10y;
+    let c11x2 = c11x * c11x;
+    let c11x3 = c11x * c11x * c11x;
+    let c11y2 = c11y * c11y;
+    let c11y3 = c11y * c11y * c11y;
+    let c12x2 = c12x * c12x;
+    let c12x3 = c12x * c12x * c12x;
+    let c12y2 = c12y * c12y;
+    let c12y3 = c12y * c12y * c12y;
+    let c13x2 = c13x * c13x;
+    let c13x3 = c13x * c13x * c13x;
+    let c13y2 = c13y * c13y;
+    let c13y3 = c13y * c13y * c13y;
+    let c20x2 = c20x * c20x;
+    let c20x3 = c20x * c20x * c20x;
+    let c20y2 = c20y * c20y;
+    let c20y3 = c20y * c20y * c20y;
+    let c21x2 = c21x * c21x;
+    let c21x3 = c21x * c21x * c21x;
+    let c21y2 = c21y * c21y;
+    let c22x2 = c22x * c22x;
+    let c22x3 = c22x * c22x * c22x;
+    let c22y2 = c22y * c22y;
+    let c23x2 = c23x * c23x;
+    let c23x3 = c23x * c23x * c23x;
+    let c23y2 = c23y * c23y;
+    let c23y3 = c23y * c23y * c23y;
 
-var a9 = -c13x3 * c23y3; 
+let a9 = -c13x3 * c23y3; 
 a9 += c13y3 * c23x3;
 a9 -= 3 * c13x * c13y2 * c23x2 * c23y;
 a9 += 3 * c13x2 * c13y * c23x * c23y2;
 pol33.coefs[9] = a9;
 
-var a8 = -6 * c13x * c22x * c13y2 * c23x * c23y; 
+let a8 = -6 * c13x * c22x * c13y2 * c23x * c23y; 
 a8 += 6 * c13x2 * c13y * c22y * c23x * c23y;
 a8 += 3 * c22x * c13y3 * c23x2;
 a8 -= 3 * c13x3 * c22y * c23y2;
@@ -403,7 +406,7 @@ a8 -= 3 * c13x * c13y2 * c22y * c23x2;
 a8 += 3 * c13x2 * c22x * c13y * c23y2;
 pol33.coefs[8] = a8;
 
-var a7 = -6 * c21x * c13x * c13y2 * c23x * c23y;
+let a7 = -6 * c21x * c13x * c13y2 * c23x * c23y;
 a7 -= 6 * c13x * c22x * c13y2 * c22y * c23x; 
 a7 += 6 * c13x2 * c22x * c13y * c22y * c23y;
 a7 += 3 * c21x * c13y3 * c23x2; 
@@ -415,7 +418,7 @@ a7 += c13x2 * c13y * c23x * (6 * c21y * c23y + 3 * c22y2);
 a7 += c13x3 * (-c21y * c23y2 - 2 * c22y2 * c23y - c23y * (2 * c21y * c23y + c22y2));
 pol33.coefs[7] = a7;
 
-var a6 = c11x * c12y * c13x * c13y * c23x * c23y;
+let a6 = c11x * c12y * c13x * c13y * c23x * c23y;
 a6 -= c11y * c12x * c13x * c13y * c23x * c23y; 
 a6 += 6 * c21x * c22x * c13y3 * c23x; 
 a6 += 3 * c11x * c12x * c13x * c13y * c23y2; 
@@ -453,7 +456,7 @@ a6 += c13x2 * c22x * c13y * (6 * c21y * c23y + 3 * c22y2);
 a6 += c13x3 * (-2 * c21y * c22y * c23y - c20y * c23y2 - c22y * (2 * c21y * c23y + c22y2) - c23y * (2 * c20y * c23y + 2 * c21y * c22y));
 pol33.coefs[6] =  a6;
 
-var a5 = 6 * c11x * c12x * c13x * c13y * c22y * c23y; 
+let a5 = 6 * c11x * c12x * c13x * c13y * c22y * c23y;
 a5 += c11x * c12y * c13x * c22x * c13y * c23y; 
 a5 += c11x * c12y * c13x * c13y * c22y * c23x; 
 a5 -= c11y * c12x * c13x * c22x * c13y * c23y; 
@@ -501,7 +504,7 @@ a5 += c13x3 * (-2 * c20y * c22y * c23y - c23y * (2 * c20y * c22y + c21y2) - c21y
 pol33.coefs[5] = a5;
 
 
-var a4 = c11x * c21x * c12y * c13x * c13y * c23y;
+let a4 = c11x * c21x * c12y * c13x * c13y * c23y;
 a4 += c11x * c12y * c13x * c21y * c13y * c23x; 
 a4 += c11x * c12y * c13x * c22x * c13y * c22y; 
 a4 -= c11y * c12x * c21x * c13x * c13y * c23y; 
@@ -563,7 +566,7 @@ a4 += c20x * c13x2 * c13y * (6 * c21y * c23y + 3 * c22y2);
 a4 += c13x3 * (-2 * c20y * c21y * c23y - c22y * (2 * c20y * c22y + c21y2) - c20y * (2 * c21y * c23y + c22y2) - c21y * (2 * c20y * c23y + 2 * c21y * c22y));
 pol33.coefs[4] = a4;
 
-var a3 = -c10x * c11x * c12y * c13x * c13y * c23y; 
+let a3 = -c10x * c11x * c12y * c13x * c13y * c23y; 
 a3 += c10x * c11y * c12x * c13x * c13y * c23y; 
 a3 += 6 * c10x * c11y * c12y * c13x * c13y * c23x; 
 a3 -= 6 * c10y * c11x * c12x * c13x * c13y * c23y; 
@@ -674,7 +677,7 @@ a3 += c21x * c13x2 * c13y * (6 * c20y * c22y + 3 * c21y2);
 a3 += c13x3 * (-2 * c20y * c21y * c22y - c20y2 * c23y - c21y * (2 * c20y * c22y + c21y2) - c20y * (2 * c20y * c23y + 2 * c21y * c22y));
 pol33.coefs[3] = a3;
 
-var a2 =-c10x * c11x * c12y * c13x * c13y * c22y;
+let a2 =-c10x * c11x * c12y * c13x * c13y * c22y;
 a2 += c10x * c11y * c12x * c13x * c13y * c22y; 
 a2 += 6 * c10x * c11y * c12y * c13x * c22x * c13y; 
 a2 -= 6 * c10y * c11x * c12x * c13x * c13y * c22y;
@@ -773,7 +776,7 @@ a2 += c20x * c13x2 * c13y * (6 * c20y * c22y + 3 * c21y2);
 a2 += c13x3 * (-2 * c20y * c21y2 - c20y2 * c22y - c20y * (2 * c20y * c22y + c21y2));
 pol33.coefs[2] = a2;
 
-var a1 = -c10x * c11x * c12y * c13x * c21y * c13y; 
+let a1 = -c10x * c11x * c12y * c13x * c21y * c13y; 
 a1 += c10x * c11y * c12x * c13x * c21y * c13y; 
 a1 += 6 * c10x * c11y * c21x * c12y * c13x * c13y; 
 a1 -= 6 * c10y * c11x * c12x * c13x * c21y * c13y; 
@@ -852,7 +855,7 @@ a1 += c11y2 * c12x2 * c21x * c13y;
 a1 -= 3 * c20x2 * c13x * c21y * c13y2; 
 a1 += 3 * c20y2 * c21x * c13x2 * c13y;
 
-var a0 = c10x * c10y * c11x * c12y * c13x * c13y;
+let a0 = c10x * c10y * c11x * c12y * c13x * c13y;
 a0 -= c10x * c10y * c11y * c12x * c13x * c13y; 
 a0 += c10x * c11x * c11y * c12x * c12y * c13y; 
 a0 -= c10y * c11x * c11y * c12x * c12y * c13x; 
@@ -955,9 +958,9 @@ a0 -= c20x2 * c12x * c12y2 * c13y;
 a0 -= 3 * c20x2 * c20y * c13x * c13y2; 
 a0 += c12x2 * c20y2 * c12y * c13x;
 pol33.coefs[0] = a0;
-   var roots = pol33.getRootsInInterval(0, 1, rootsi[11]);
-    for (var i = 0; i < roots.length; i++) {
-        var s = roots[i];
+   let roots = pol33.getRootsInInterval(0, 1, rootsi[11]);
+    for (let i = 0; i < roots.length; i++) {
+        let s = roots[i];
         if(s < 0) continue;
         pol41.coefs[3] = c13x;
         pol41.coefs[2] = c12x;
@@ -968,19 +971,23 @@ pol33.coefs[0] = a0;
         pol42.coefs[1] = c11y;
         pol42.coefs[0] = c10y - c20y - s * c21y - s * s * c22y - s * s * s * c23y;
 
-        var xRoots = pol41.getRoots(roots2); //new Polynomial(c13x, c12x, c11x, c10x - c20x - s * c21x - s * s * c22x - s * s * s * c23x).getRoots(roots2);
-        var yRoots = pol42.getRoots(roots3); //new Polynomial(c13y, c12y, c11y, c10y - c20y - s * c21y - s * s * c22y - s * s * s * c23y).getRoots(roots3);
+        let xRoots = pol41.getRoots(roots2); //new Polynomial(c13x, c12x, c11x, c10x - c20x - s * c21x - s * s * c22x - s * s * s * c23x).getRoots(roots2);
+        let yRoots = pol42.getRoots(roots3); //new Polynomial(c13y, c12y, c11y, c10y - c20y - s * c21y - s * s * c22y - s * s * s * c23y).getRoots(roots3);
+        let lastResultIdx = 0;
         if (xRoots.length > 0 && yRoots.length > 0) {
-            var TOLERANCE = 1e-8;
-            checkRoots: for (var j = 0; j < xRoots.length; j++) {
-                var xRoot = xRoots[j];
+            let TOLERANCE = 1e-8;
+            checkRoots: for (let j = 0; j < xRoots.length; j++) {
+                let xRoot = xRoots[j];
                 if (0 <= xRoot && xRoot <= 1) {
-                    for (var k = 0; k < yRoots.length; k++) {
+                    for (let k = 0; k < yRoots.length; k++) {
                             if (Math.abs(xRoot - yRoots[k]) < TOLERANCE) {
-                                result.appendPoint(new Point2D(
-                                    c23x * s * s * s + c22x * s * s + c21x * s + c20x,
-                                    c23y * s * s * s + c22y * s * s + c21y * s + c20y), s);
-                                //break checkRoots;
+                                result.points[lastResultIdx].x =
+                                    c23x * s * s * s + c22x * s * s + c21x * s + c20x;
+                                result.points[lastResultIdx].y =
+                                    c23y * s * s * s + c22y * s * s + c21y * s + c20y;
+                                result.points[lastResultIdx].t = s;
+                                result.count += 1;
+                                ++lastResultIdx;
                             }
                         }
                 }
@@ -995,8 +1002,8 @@ Intersection.intersectBezier3Circle = ib3e; //function (p1, p2, p3, p4, c, r) {
 //};
 
 function ib3e(p1, p2, p3, p4, ec, rx, ry, result) {
-    var a, b, c, d;
-    var c3, c2, c1, c0;
+    let a, b, c, d;
+    let c3, c2, c1, c0;
     a = p1.multiply(-1);
     b = p2.multiply(3);
     c = p3.multiply(-3);
@@ -1012,8 +1019,8 @@ function ib3e(p1, p2, p3, p4, ec, rx, ry, result) {
     c = a.add(b);
     c1 = new Vector2D(c.x, c.y);
     c0 = new Vector2D(p1.x, p1.y);
-    var rxrx = rx * rx;
-    var ryry = ry * ry;
+    let rxrx = rx * rx;
+    let ryry = ry * ry;
     dpol[7].coefs[6] = c3.x * c3.x * ryry + c3.y * c3.y * rxrx;
     dpol[7].coefs[5] = 2 * (c3.x * c2.x * ryry + c3.y * c2.y * rxrx);
     dpol[7].coefs[4] = 2 * (c3.x * c1.x * ryry + c3.y * c1.y * rxrx) + c2.x * c2.x * ryry + c2.y * c2.y * rxrx;
@@ -1021,12 +1028,12 @@ function ib3e(p1, p2, p3, p4, ec, rx, ry, result) {
     dpol[7].coefs[2] = 2 * c2.x * ryry * (c0.x - ec.x) + 2 * c2.y * rxrx * (c0.y - ec.y) + c1.x * c1.x * ryry + c1.y * c1.y * rxrx;
     dpol[7].coefs[1] = 2 * c1.x * ryry * (c0.x - ec.x) + 2 * c1.y * rxrx * (c0.y - ec.y);
     dpol[7].coefs[0] = c0.x * c0.x * ryry - 2 * c0.y * ec.y * rxrx - 2 * c0.x * ec.x * ryry + c0.y * c0.y * rxrx + ec.x * ec.x * ryry + ec.y * ec.y * rxrx - rxrx * ryry;
-    var roots = dpol[7].getRootsInInterval(0, 1, rootsi[7]);
-    for (var i = 0; i < roots.length; i++) {
-        var t = roots[i];
+    let roots = dpol[7].getRootsInInterval(0, 1, rootsi[7]);
+    for (let i = 0; i < roots.length; i++) {
+        let t = roots[i];
         if(t >= 0 && t <= 1) {
             //result.appendPoint(c3.multiply(t * t * t).add(c2.multiply(t * t).add(c1.multiply(t).add(c0))), t);
-            var d = Raphael.findDotsAtSegment(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y, t);
+            let d = Raphael.findDotsAtSegment(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y, t);
             result.appendPoint({x:d.x, y:d.y}, t);
             //console.log(t+ "  " + d.x + " " + d.y);
             result.status = "Intersection";
@@ -1037,9 +1044,9 @@ function ib3e(p1, p2, p3, p4, ec, rx, ry, result) {
 }
 
 Intersection.intersectBezier3Ellipse = function (p1, p2, p3, p4, ec, rx, ry) {
-    var a, b, c, d;
-    var c3, c2, c1, c0;
-    var result = new Intersection("No Intersection");
+    let a, b, c, d;
+    let c3, c2, c1, c0;
+    let result = new Intersection("No Intersection");
     a = p1.multiply(-1);
     b = p2.multiply(3);
     c = p3.multiply(-3);
@@ -1055,12 +1062,12 @@ Intersection.intersectBezier3Ellipse = function (p1, p2, p3, p4, ec, rx, ry) {
     c = a.add(b);
     c1 = new Vector2D(c.x, c.y);
     c0 = new Vector2D(p1.x, p1.y);
-    var rxrx = rx * rx;
-    var ryry = ry * ry;
-    var poly = new Polynomial(c3.x * c3.x * ryry + c3.y * c3.y * rxrx, 2 * (c3.x * c2.x * ryry + c3.y * c2.y * rxrx), 2 * (c3.x * c1.x * ryry + c3.y * c1.y * rxrx) + c2.x * c2.x * ryry + c2.y * c2.y * rxrx, 2 * c3.x * ryry * (c0.x - ec.x) + 2 * c3.y * rxrx * (c0.y - ec.y) + 2 * (c2.x * c1.x * ryry + c2.y * c1.y * rxrx), 2 * c2.x * ryry * (c0.x - ec.x) + 2 * c2.y * rxrx * (c0.y - ec.y) + c1.x * c1.x * ryry + c1.y * c1.y * rxrx, 2 * c1.x * ryry * (c0.x - ec.x) + 2 * c1.y * rxrx * (c0.y - ec.y), c0.x * c0.x * ryry - 2 * c0.y * ec.y * rxrx - 2 * c0.x * ec.x * ryry + c0.y * c0.y * rxrx + ec.x * ec.x * ryry + ec.y * ec.y * rxrx - rxrx * ryry);
-    var roots = poly.getRootsInInterval(0, 1);
-    for (var i = 0; i < roots.length; i++) {
-        var t = roots[i];
+    let rxrx = rx * rx;
+    let ryry = ry * ry;
+    let poly = new Polynomial(c3.x * c3.x * ryry + c3.y * c3.y * rxrx, 2 * (c3.x * c2.x * ryry + c3.y * c2.y * rxrx), 2 * (c3.x * c1.x * ryry + c3.y * c1.y * rxrx) + c2.x * c2.x * ryry + c2.y * c2.y * rxrx, 2 * c3.x * ryry * (c0.x - ec.x) + 2 * c3.y * rxrx * (c0.y - ec.y) + 2 * (c2.x * c1.x * ryry + c2.y * c1.y * rxrx), 2 * c2.x * ryry * (c0.x - ec.x) + 2 * c2.y * rxrx * (c0.y - ec.y) + c1.x * c1.x * ryry + c1.y * c1.y * rxrx, 2 * c1.x * ryry * (c0.x - ec.x) + 2 * c1.y * rxrx * (c0.y - ec.y), c0.x * c0.x * ryry - 2 * c0.y * ec.y * rxrx - 2 * c0.x * ec.x * ryry + c0.y * c0.y * rxrx + ec.x * ec.x * ryry + ec.y * ec.y * rxrx - rxrx * ryry);
+    let roots = poly.getRootsInInterval(0, 1);
+    for (let i = 0; i < roots.length; i++) {
+        let t = roots[i];
         result.points.push(c3.multiply(t * t * t).add(c2.multiply(t * t).add(c1.multiply(t).add(c0))));
     }
     if (result.points.length > 0) result.status = "Intersection";
@@ -1070,49 +1077,49 @@ Intersection.intersectBezier3Ellipse = function (p1, p2, p3, p4, ec, rx, ry) {
 Intersection.intersectBezier3Line = ib3l;
 
 function ib3l(p1, p2, p3, p4, a1, a2, result) {
-    var min = a1.min(a2);
-    var max = a1.max(a2);
-    var ax = -p1.x;
-    var ay = -p1.y;
-    var bx = 3*p2.x;
-    var by = 3*p2.y;
-    var cx = -3*p3.x;
-    var cy = -3*p3.y;
-    var c3x = ax + bx + cx + p4.x;
-    var c3y = ay + by + cy + p4.y;
+    let min = a1.min(a2);
+    let max = a1.max(a2);
+    let ax = -p1.x;
+    let ay = -p1.y;
+    let bx = 3*p2.x;
+    let by = 3*p2.y;
+    let cx = -3*p3.x;
+    let cy = -3*p3.y;
+    let c3x = ax + bx + cx + p4.x;
+    let c3y = ay + by + cy + p4.y;
     ax = 3*p1.x;
     ay = 3*p1.y;
     bx = -6*p2.x;
     by = -6*p2.y;
     cx = 3*p3.x;
     cy = 3*p3.y;
-    var c2x = ax + bx + cx;
-    var c2y = ay + by + cy;
+    let c2x = ax + bx + cx;
+    let c2y = ay + by + cy;
     ax = -3*p1.x;
     ay = -3*p1.y;
     bx = 3*p2.x;
     by = 3*p2.y;
-    var c1x = ax + bx;
-    var c1y = ay + by;
-    var c0x = p1.x;
-    var c0y = p1.y;
-    var nx = a1.y - a2.y;
-    var ny = a2.x - a1.x;
-    var cl = a1.x * a2.y - a2.x * a1.y;
+    let c1x = ax + bx;
+    let c1y = ay + by;
+    let c0x = p1.x;
+    let c0y = p1.y;
+    let nx = a1.y - a2.y;
+    let ny = a2.x - a1.x;
+    let cl = a1.x * a2.y - a2.x * a1.y;
     pol41.coefs[3] = nx*c3x + ny*c3y;
     pol41.coefs[2] = nx*c2x + ny*c2y;
     pol41.coefs[1] = nx*c1x + ny*c1y;
     pol41.coefs[0] = nx*c0x + ny*c0y + cl;
-    var roots = pol41.getRoots(roots2); //new Polynomial(n.dot(c3), n.dot(c2), n.dot(c1), n.dot(c0) + cl).getRoots(roots2);
-    for (var i = 0; i < roots.length; i++) {
-        var t = roots[i];
+    let roots = pol41.getRoots(roots2); //new Polynomial(n.dot(c3), n.dot(c2), n.dot(c1), n.dot(c0) + cl).getRoots(roots2);
+    for (let i = 0; i < roots.length; i++) {
+        let t = roots[i];
         if (0 <= t && t <= 1) {
-            var p5 = p1.lerp(p2, t);
-            var p6 = p2.lerp(p3, t);
-            var p7 = p3.lerp(p4, t);
-            var p8 = p5.lerp(p6, t);
-            var p9 = p6.lerp(p7, t);
-            var p10 = p8.lerp(p9, t);
+            let p5 = p1.lerp(p2, t);
+            let p6 = p2.lerp(p3, t);
+            let p7 = p3.lerp(p4, t);
+            let p8 = p5.lerp(p6, t);
+            let p9 = p6.lerp(p7, t);
+            let p10 = p8.lerp(p9, t);
             if (Math.abs(a1.x - a2.x) < Math.abs(a1.y - a2.y)) {
                 if (min.y <= p10.y && p10.y <= max.y) {
                     result.appendPoint(p10, t);
@@ -1129,27 +1136,27 @@ function ib3l(p1, p2, p3, p4, a1, a2, result) {
     return result;
 };
 Intersection.intersectBezier3Polygon = function (p1, p2, p3, p4, points) {
-    var result = new Intersection("No Intersection");
-    var length = points.length;
-    for (var i = 0; i < length; i++) {
-        var a1 = points[i];
-        var a2 = points[(i + 1) % length];
-        var inter = Intersection.intersectBezier3Line(p1, p2, p3, p4, a1, a2);
+    let result = new Intersection("No Intersection");
+    let length = points.length;
+    for (let i = 0; i < length; i++) {
+        let a1 = points[i];
+        let a2 = points[(i + 1) % length];
+        let inter = Intersection.intersectBezier3Line(p1, p2, p3, p4, a1, a2);
         result.appendPoints(inter.points, inter.t);
     }
     if (result.points.length > 0) result.status = "Intersection";
     return result;
 };
 Intersection.intersectBezier3Rectangle = function (p1, p2, p3, p4, r1, r2) {
-    var min = r1.min(r2);
-    var max = r1.max(r2);
-    var topRight = new Point2D(max.x, min.y);
-    var bottomLeft = new Point2D(min.x, max.y);
-    var inter1 = Intersection.intersectBezier3Line(p1, p2, p3, p4, min, topRight);
-    var inter2 = Intersection.intersectBezier3Line(p1, p2, p3, p4, topRight, max);
-    var inter3 = Intersection.intersectBezier3Line(p1, p2, p3, p4, max, bottomLeft);
-    var inter4 = Intersection.intersectBezier3Line(p1, p2, p3, p4, bottomLeft, min);
-    var result = new Intersection("No Intersection");
+    let min = r1.min(r2);
+    let max = r1.max(r2);
+    let topRight = new Point2D(max.x, min.y);
+    let bottomLeft = new Point2D(min.x, max.y);
+    let inter1 = Intersection.intersectBezier3Line(p1, p2, p3, p4, min, topRight);
+    let inter2 = Intersection.intersectBezier3Line(p1, p2, p3, p4, topRight, max);
+    let inter3 = Intersection.intersectBezier3Line(p1, p2, p3, p4, max, bottomLeft);
+    let inter4 = Intersection.intersectBezier3Line(p1, p2, p3, p4, bottomLeft, min);
+    let result = new Intersection("No Intersection");
     result.appendPoints(inter1.points, inter1.t);
     result.appendPoints(inter2.points, inter2.t);
     result.appendPoints(inter3.points, inter3.t);
@@ -1158,20 +1165,20 @@ Intersection.intersectBezier3Rectangle = function (p1, p2, p3, p4, r1, r2) {
     return result;
 };
 Intersection.intersectCircleCircle = function (c1, r1, c2, r2) {
-    var result;
-    var r_max = r1 + r2;
-    var r_min = Math.abs(r1 - r2);
-    var c_dist = c1.distanceFrom(c2);
+    let result;
+    let r_max = r1 + r2;
+    let r_min = Math.abs(r1 - r2);
+    let c_dist = c1.distanceFrom(c2);
     if (c_dist > r_max) {
         result = new Intersection("Outside");
     } else if (c_dist < r_min) {
         result = new Intersection("Inside");
     } else {
         result = new Intersection("Intersection");
-        var a = (r1 * r1 - r2 * r2 + c_dist * c_dist) / (2 * c_dist);
-        var h = Math.sqrt(r1 * r1 - a * a);
-        var p = c1.lerp(c2, a / c_dist);
-        var b = h / c_dist;
+        let a = (r1 * r1 - r2 * r2 + c_dist * c_dist) / (2 * c_dist);
+        let h = Math.sqrt(r1 * r1 - a * a);
+        let p = c1.lerp(c2, a / c_dist);
+        let b = h / c_dist;
         result.points.push(new Point2D(p.x - b * (c2.y - c1.y), p.y + b * (c2.x - c1.x)));
         result.points.push(new Point2D(p.x + b * (c2.y - c1.y), p.y - b * (c2.x - c1.x)));
     }
@@ -1181,19 +1188,19 @@ Intersection.intersectCircleEllipse = function (cc, r, ec, rx, ry) {
     return Intersection.intersectEllipseEllipse(cc, r, r, ec, rx, ry);
 };
 Intersection.intersectCircleLine = function (c, r, a1, a2) {
-    var result;
-    var a = (a2.x - a1.x) * (a2.x - a1.x) + (a2.y - a1.y) * (a2.y - a1.y);
-    var b = 2 * ((a2.x - a1.x) * (a1.x - c.x) + (a2.y - a1.y) * (a1.y - c.y));
-    var cc = c.x * c.x + c.y * c.y + a1.x * a1.x + a1.y * a1.y - 2 * (c.x * a1.x + c.y * a1.y) - r * r;
-    var deter = b * b - 4 * a * cc;
+    let result;
+    let a = (a2.x - a1.x) * (a2.x - a1.x) + (a2.y - a1.y) * (a2.y - a1.y);
+    let b = 2 * ((a2.x - a1.x) * (a1.x - c.x) + (a2.y - a1.y) * (a1.y - c.y));
+    let cc = c.x * c.x + c.y * c.y + a1.x * a1.x + a1.y * a1.y - 2 * (c.x * a1.x + c.y * a1.y) - r * r;
+    let deter = b * b - 4 * a * cc;
     if (deter < 0) {
         result = new Intersection("Outside");
     } else if (deter == 0) {
         result = new Intersection("Tangent");
     } else {
-        var e = Math.sqrt(deter);
-        var u1 = (-b + e) / (2 * a);
-        var u2 = (-b - e) / (2 * a);
+        let e = Math.sqrt(deter);
+        let u1 = (-b + e) / (2 * a);
+        let u2 = (-b - e) / (2 * a);
         if ((u1 < 0 || u1 > 1) && (u2 < 0 || u2 > 1)) {
             if ((u1 < 0 && u2 < 0) || (u1 > 1 && u2 > 1)) {
                 result = new Intersection("Outside");
@@ -1209,12 +1216,12 @@ Intersection.intersectCircleLine = function (c, r, a1, a2) {
     return result;
 };
 Intersection.intersectCirclePolygon = function (c, r, points) {
-    var result = new Intersection("No Intersection");
-    var length = points.length;
-    var inter;
-    for (var i = 0; i < length; i++) {
-        var a1 = points[i];
-        var a2 = points[(i + 1) % length];
+    let result = new Intersection("No Intersection");
+    let length = points.length;
+    let inter;
+    for (let i = 0; i < length; i++) {
+        let a1 = points[i];
+        let a2 = points[(i + 1) % length];
         inter = Intersection.intersectCircleLine(c, r, a1, a2);
         result.appendPoints(inter.points, inter.t);
     }
@@ -1223,15 +1230,15 @@ Intersection.intersectCirclePolygon = function (c, r, points) {
     return result;
 };
 Intersection.intersectCircleRectangle = function (c, r, r1, r2) {
-    var min = r1.min(r2);
-    var max = r1.max(r2);
-    var topRight = new Point2D(max.x, min.y);
-    var bottomLeft = new Point2D(min.x, max.y);
-    var inter1 = Intersection.intersectCircleLine(c, r, min, topRight);
-    var inter2 = Intersection.intersectCircleLine(c, r, topRight, max);
-    var inter3 = Intersection.intersectCircleLine(c, r, max, bottomLeft);
-    var inter4 = Intersection.intersectCircleLine(c, r, bottomLeft, min);
-    var result = new Intersection("No Intersection");
+    let min = r1.min(r2);
+    let max = r1.max(r2);
+    let topRight = new Point2D(max.x, min.y);
+    let bottomLeft = new Point2D(min.x, max.y);
+    let inter1 = Intersection.intersectCircleLine(c, r, min, topRight);
+    let inter2 = Intersection.intersectCircleLine(c, r, topRight, max);
+    let inter3 = Intersection.intersectCircleLine(c, r, max, bottomLeft);
+    let inter4 = Intersection.intersectCircleLine(c, r, bottomLeft, min);
+    let result = new Intersection("No Intersection");
     result.appendPoints(inter1.points, inter.t);
     result.appendPoints(inter2.points, inter2.t);
     result.appendPoints(inter3.points);
@@ -1241,19 +1248,19 @@ Intersection.intersectCircleRectangle = function (c, r, r1, r2) {
     return result;
 };
 Intersection.intersectEllipseEllipse = function (c1, rx1, ry1, c2, rx2, ry2) {
-    var a = [ry1 * ry1, 0, rx1 * rx1, -2 * ry1 * ry1 * c1.x, -2 * rx1 * rx1 * c1.y, ry1 * ry1 * c1.x * c1.x + rx1 * rx1 * c1.y * c1.y - rx1 * rx1 * ry1 * ry1];
-    var b = [ry2 * ry2, 0, rx2 * rx2, -2 * ry2 * ry2 * c2.x, -2 * rx2 * rx2 * c2.y, ry2 * ry2 * c2.x * c2.x + rx2 * rx2 * c2.y * c2.y - rx2 * rx2 * ry2 * ry2];
-    var yPoly = Intersection.bezout(a, b);
-    var yRoots = yPoly.getRoots();
-    var epsilon = 1e-3;
-    var norm0 = (a[0] * a[0] + 2 * a[1] * a[1] + a[2] * a[2]) * epsilon;
-    var norm1 = (b[0] * b[0] + 2 * b[1] * b[1] + b[2] * b[2]) * epsilon;
-    var result = new Intersection("No Intersection");
-    for (var y = 0; y < yRoots.length; y++) {
-        var xPoly = new Polynomial(a[0], a[3] + yRoots[y] * a[1], a[5] + yRoots[y] * (a[4] + yRoots[y] * a[2]));
-        var xRoots = xPoly.getRoots();
-        for (var x = 0; x < xRoots.length; x++) {
-            var test = (a[0] * xRoots[x] + a[1] * yRoots[y] + a[3]) * xRoots[x] + (a[2] * yRoots[y] + a[4]) * yRoots[y] + a[5];
+    let a = [ry1 * ry1, 0, rx1 * rx1, -2 * ry1 * ry1 * c1.x, -2 * rx1 * rx1 * c1.y, ry1 * ry1 * c1.x * c1.x + rx1 * rx1 * c1.y * c1.y - rx1 * rx1 * ry1 * ry1];
+    let b = [ry2 * ry2, 0, rx2 * rx2, -2 * ry2 * ry2 * c2.x, -2 * rx2 * rx2 * c2.y, ry2 * ry2 * c2.x * c2.x + rx2 * rx2 * c2.y * c2.y - rx2 * rx2 * ry2 * ry2];
+    let yPoly = Intersection.bezout(a, b);
+    let yRoots = yPoly.getRoots();
+    let epsilon = 1e-3;
+    let norm0 = (a[0] * a[0] + 2 * a[1] * a[1] + a[2] * a[2]) * epsilon;
+    let norm1 = (b[0] * b[0] + 2 * b[1] * b[1] + b[2] * b[2]) * epsilon;
+    let result = new Intersection("No Intersection");
+    for (let y = 0; y < yRoots.length; y++) {
+        let xPoly = new Polynomial(a[0], a[3] + yRoots[y] * a[1], a[5] + yRoots[y] * (a[4] + yRoots[y] * a[2]));
+        let xRoots = xPoly.getRoots();
+        for (let x = 0; x < xRoots.length; x++) {
+            let test = (a[0] * xRoots[x] + a[1] * yRoots[y] + a[3]) * xRoots[x] + (a[2] * yRoots[y] + a[4]) * yRoots[y] + a[5];
             if (Math.abs(test) < norm0) {
                 test = (b[0] * xRoots[x] + b[1] * yRoots[y] + b[3]) * xRoots[x] + (b[2] * yRoots[y] + b[4]) * yRoots[y] + b[5];
                 if (Math.abs(test) < norm1) {
@@ -1265,24 +1272,24 @@ Intersection.intersectEllipseEllipse = function (c1, rx1, ry1, c2, rx2, ry2) {
     if (result.points.length > 0) result.status = "Intersection";
     return result;
 };
-Intersection.intersectEllipseLine = function (c, rx, ry, a1, a2) {
-    var result;
-    var origin = new Vector2D(a1.x, a1.y);
-    var dir = Vector2D.fromPoints(a1, a2);
-    var center = new Vector2D(c.x, c.y);
-    var diff = origin.subtract(center);
-    var mDir = new Vector2D(dir.x / (rx * rx), dir.y / (ry * ry));
-    var mDiff = new Vector2D(diff.x / (rx * rx), diff.y / (ry * ry));
-    var a = dir.dot(mDir);
-    var b = dir.dot(mDiff);
-    var c = diff.dot(mDiff) - 1.0;
-    var d = b * b - a * c;
+Intersection.intersectEllipseLine = function (pc, rx, ry, a1, a2) {
+    let result;
+    let origin = new Vector2D(a1.x, a1.y);
+    let dir = Vector2D.fromPoints(a1, a2);
+    let center = new Vector2D(pc.x, pc.y);
+    let diff = origin.subtract(center);
+    let mDir = new Vector2D(dir.x / (rx * rx), dir.y / (ry * ry));
+    let mDiff = new Vector2D(diff.x / (rx * rx), diff.y / (ry * ry));
+    let a = dir.dot(mDir);
+    let b = dir.dot(mDiff);
+    let c = diff.dot(mDiff) - 1.0;
+    let d = b * b - a * c;
     if (d < 0) {
         result = new Intersection("Outside");
     } else if (d > 0) {
-        var root = Math.sqrt(d);
-        var t_a = (-b - root) / a;
-        var t_b = (-b + root) / a;
+        let root = Math.sqrt(d);
+        let t_a = (-b - root) / a;
+        let t_b = (-b + root) / a;
         if ((t_a < 0 || 1 < t_a) && (t_b < 0 || 1 < t_b)) {
             if ((t_a < 0 && t_b < 0) || (t_a > 1 && t_b > 1)) result = new Intersection("Outside");
             else result = new Intersection("Inside");
@@ -1292,7 +1299,7 @@ Intersection.intersectEllipseLine = function (c, rx, ry, a1, a2) {
             if (0 <= t_b && t_b <= 1) result.appendPoint(a1.lerp(a2, t_b));
         }
     } else {
-        var t = -b / a;
+        let t = -b / a;
         if (0 <= t && t <= 1) {
             result = new Intersection("Intersection");
             result.appendPoint(a1.lerp(a2, t));
@@ -1303,27 +1310,27 @@ Intersection.intersectEllipseLine = function (c, rx, ry, a1, a2) {
     return result;
 };
 Intersection.intersectEllipsePolygon = function (c, rx, ry, points) {
-    var result = new Intersection("No Intersection");
-    var length = points.length;
-    for (var i = 0; i < length; i++) {
-        var b1 = points[i];
-        var b2 = points[(i + 1) % length];
-        var inter = Intersection.intersectEllipseLine(c, rx, ry, b1, b2);
+    let result = new Intersection("No Intersection");
+    let length = points.length;
+    for (let i = 0; i < length; i++) {
+        let b1 = points[i];
+        let b2 = points[(i + 1) % length];
+        let inter = Intersection.intersectEllipseLine(c, rx, ry, b1, b2);
         result.appendPoints(inter.points, inter.t);
     }
     if (result.points.length > 0) result.status = "Intersection";
     return result;
 };
 Intersection.intersectEllipseRectangle = function (c, rx, ry, r1, r2) {
-    var min = r1.min(r2);
-    var max = r1.max(r2);
-    var topRight = new Point2D(max.x, min.y);
-    var bottomLeft = new Point2D(min.x, max.y);
-    var inter1 = Intersection.intersectEllipseLine(c, rx, ry, min, topRight);
-    var inter2 = Intersection.intersectEllipseLine(c, rx, ry, topRight, max);
-    var inter3 = Intersection.intersectEllipseLine(c, rx, ry, max, bottomLeft);
-    var inter4 = Intersection.intersectEllipseLine(c, rx, ry, bottomLeft, min);
-    var result = new Intersection("No Intersection");
+    let min = r1.min(r2);
+    let max = r1.max(r2);
+    let topRight = new Point2D(max.x, min.y);
+    let bottomLeft = new Point2D(min.x, max.y);
+    let inter1 = Intersection.intersectEllipseLine(c, rx, ry, min, topRight);
+    let inter2 = Intersection.intersectEllipseLine(c, rx, ry, topRight, max);
+    let inter3 = Intersection.intersectEllipseLine(c, rx, ry, max, bottomLeft);
+    let inter4 = Intersection.intersectEllipseLine(c, rx, ry, bottomLeft, min);
+    let result = new Intersection("No Intersection");
     result.appendPoints(inter1.points, inter1.t);
     result.appendPoints(inter2.points, inter2.t);
     result.appendPoints(inter3.points, inter3.t);
@@ -1332,13 +1339,13 @@ Intersection.intersectEllipseRectangle = function (c, rx, ry, r1, r2) {
     return result;
 };
 Intersection.intersectLineLine = function (a1, a2, b1, b2) {
-    var result;
-    var ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x);
-    var ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x);
-    var u_b = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y);
+    let result;
+    let ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x);
+    let ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x);
+    let u_b = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y);
     if (u_b != 0) {
-        var ua = ua_t / u_b;
-        var ub = ub_t / u_b;
+        let ua = ua_t / u_b;
+        let ub = ub_t / u_b;
         if (0 <= ua && ua <= 1 && 0 <= ub && ub <= 1) {
             result = new Intersection("Intersection");
             result.points.push(new Point2D(a1.x + ua * (a2.x - a1.x), a1.y + ua * (a2.y - a1.y)));
@@ -1355,27 +1362,27 @@ Intersection.intersectLineLine = function (a1, a2, b1, b2) {
     return result;
 };
 Intersection.intersectLinePolygon = function (a1, a2, points) {
-    var result = new Intersection("No Intersection");
-    var length = points.length;
-    for (var i = 0; i < length; i++) {
-        var b1 = points[i];
-        var b2 = points[(i + 1) % length];
-        var inter = Intersection.intersectLineLine(a1, a2, b1, b2);
+    let result = new Intersection("No Intersection");
+    let length = points.length;
+    for (let i = 0; i < length; i++) {
+        let b1 = points[i];
+        let b2 = points[(i + 1) % length];
+        let inter = Intersection.intersectLineLine(a1, a2, b1, b2);
         result.appendPoints(inter.points, inter.t);
     }
     if (result.points.length > 0) result.status = "Intersection";
     return result;
 };
 Intersection.intersectLineRectangle = function (a1, a2, r1, r2) {
-    var min = r1.min(r2);
-    var max = r1.max(r2);
-    var topRight = new Point2D(max.x, min.y);
-    var bottomLeft = new Point2D(min.x, max.y);
-    var inter1 = Intersection.intersectLineLine(min, topRight, a1, a2);
-    var inter2 = Intersection.intersectLineLine(topRight, max, a1, a2);
-    var inter3 = Intersection.intersectLineLine(max, bottomLeft, a1, a2);
-    var inter4 = Intersection.intersectLineLine(bottomLeft, min, a1, a2);
-    var result = new Intersection("No Intersection");
+    let min = r1.min(r2);
+    let max = r1.max(r2);
+    let topRight = new Point2D(max.x, min.y);
+    let bottomLeft = new Point2D(min.x, max.y);
+    let inter1 = Intersection.intersectLineLine(min, topRight, a1, a2);
+    let inter2 = Intersection.intersectLineLine(topRight, max, a1, a2);
+    let inter3 = Intersection.intersectLineLine(max, bottomLeft, a1, a2);
+    let inter4 = Intersection.intersectLineLine(bottomLeft, min, a1, a2);
+    let result = new Intersection("No Intersection");
     result.appendPoints(inter1.points, inter1.t);
     result.appendPoints(inter2.points, inter2.t);
     result.appendPoints(inter3.points, inter3.t);
@@ -1384,27 +1391,27 @@ Intersection.intersectLineRectangle = function (a1, a2, r1, r2) {
     return result;
 };
 Intersection.intersectPolygonPolygon = function (points1, points2) {
-    var result = new Intersection("No Intersection");
-    var length = points1.length;
-    for (var i = 0; i < length; i++) {
-        var a1 = points1[i];
-        var a2 = points1[(i + 1) % length];
-        var inter = Intersection.intersectLinePolygon(a1, a2, points2);
+    let result = new Intersection("No Intersection");
+    let length = points1.length;
+    for (let i = 0; i < length; i++) {
+        let a1 = points1[i];
+        let a2 = points1[(i + 1) % length];
+        let inter = Intersection.intersectLinePolygon(a1, a2, points2);
         result.appendPoints(inter.points, inter.t);
     }
     if (result.points.length > 0) result.status = "Intersection";
     return result;
 };
 Intersection.intersectPolygonRectangle = function (points, r1, r2) {
-    var min = r1.min(r2);
-    var max = r1.max(r2);
-    var topRight = new Point2D(max.x, min.y);
-    var bottomLeft = new Point2D(min.x, max.y);
-    var inter1 = Intersection.intersectLinePolygon(min, topRight, points);
-    var inter2 = Intersection.intersectLinePolygon(topRight, max, points);
-    var inter3 = Intersection.intersectLinePolygon(max, bottomLeft, points);
-    var inter4 = Intersection.intersectLinePolygon(bottomLeft, min, points);
-    var result = new Intersection("No Intersection");
+    let min = r1.min(r2);
+    let max = r1.max(r2);
+    let topRight = new Point2D(max.x, min.y);
+    let bottomLeft = new Point2D(min.x, max.y);
+    let inter1 = Intersection.intersectLinePolygon(min, topRight, points);
+    let inter2 = Intersection.intersectLinePolygon(topRight, max, points);
+    let inter3 = Intersection.intersectLinePolygon(max, bottomLeft, points);
+    let inter4 = Intersection.intersectLinePolygon(bottomLeft, min, points);
+    let result = new Intersection("No Intersection");
     result.appendPoints(inter1.points, inter1.t);
     result.appendPoints(inter2.points, inter2.t);
     result.appendPoints(inter3.points, inter3.t);
@@ -1413,12 +1420,12 @@ Intersection.intersectPolygonRectangle = function (points, r1, r2) {
     return result;
 };
 Intersection.intersectRayRay = function (a1, a2, b1, b2) {
-    var result;
-    var ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x);
-    var ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x);
-    var u_b = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y);
+    let result;
+    let ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x);
+    let ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x);
+    let u_b = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y);
     if (u_b != 0) {
-        var ua = ua_t / u_b;
+        let ua = ua_t / u_b;
         result = new Intersection("Intersection");
         result.points.push(new Point2D(a1.x + ua * (a2.x - a1.x), a1.y + ua * (a2.y - a1.y)));
     } else {
@@ -1431,15 +1438,15 @@ Intersection.intersectRayRay = function (a1, a2, b1, b2) {
     return result;
 };
 Intersection.intersectRectangleRectangle = function (a1, a2, b1, b2) {
-    var min = a1.min(a2);
-    var max = a1.max(a2);
-    var topRight = new Point2D(max.x, min.y);
-    var bottomLeft = new Point2D(min.x, max.y);
-    var inter1 = Intersection.intersectLineRectangle(min, topRight, b1, b2);
-    var inter2 = Intersection.intersectLineRectangle(topRight, max, b1, b2);
-    var inter3 = Intersection.intersectLineRectangle(max, bottomLeft, b1, b2);
-    var inter4 = Intersection.intersectLineRectangle(bottomLeft, min, b1, b2);
-    var result = new Intersection("No Intersection");
+    let min = a1.min(a2);
+    let max = a1.max(a2);
+    let topRight = new Point2D(max.x, min.y);
+    let bottomLeft = new Point2D(min.x, max.y);
+    let inter1 = Intersection.intersectLineRectangle(min, topRight, b1, b2);
+    let inter2 = Intersection.intersectLineRectangle(topRight, max, b1, b2);
+    let inter3 = Intersection.intersectLineRectangle(max, bottomLeft, b1, b2);
+    let inter4 = Intersection.intersectLineRectangle(bottomLeft, min, b1, b2);
+    let result = new Intersection("No Intersection");
     result.appendPoints(inter1.points, inter1.t);
     result.appendPoints(inter2.points, inter2.t);
     result.appendPoints(inter3.points, inter3.t);
@@ -1448,19 +1455,19 @@ Intersection.intersectRectangleRectangle = function (a1, a2, b1, b2) {
     return result;
 };
 Intersection.bezout = function (e1, e2) {
-    var AB = e1[0] * e2[1] - e2[0] * e1[1];
-    var AC = e1[0] * e2[2] - e2[0] * e1[2];
-    var AD = e1[0] * e2[3] - e2[0] * e1[3];
-    var AE = e1[0] * e2[4] - e2[0] * e1[4];
-    var AF = e1[0] * e2[5] - e2[0] * e1[5];
-    var BC = e1[1] * e2[2] - e2[1] * e1[2];
-    var BE = e1[1] * e2[4] - e2[1] * e1[4];
-    var BF = e1[1] * e2[5] - e2[1] * e1[5];
-    var CD = e1[2] * e2[3] - e2[2] * e1[3];
-    var DE = e1[3] * e2[4] - e2[3] * e1[4];
-    var DF = e1[3] * e2[5] - e2[3] * e1[5];
-    var BFpDE = BF + DE;
-    var BEmCD = BE - CD;
+    let AB = e1[0] * e2[1] - e2[0] * e1[1];
+    let AC = e1[0] * e2[2] - e2[0] * e1[2];
+    let AD = e1[0] * e2[3] - e2[0] * e1[3];
+    let AE = e1[0] * e2[4] - e2[0] * e1[4];
+    let AF = e1[0] * e2[5] - e2[0] * e1[5];
+    let BC = e1[1] * e2[2] - e2[1] * e1[2];
+    let BE = e1[1] * e2[4] - e2[1] * e1[4];
+    let BF = e1[1] * e2[5] - e2[1] * e1[5];
+    let CD = e1[2] * e2[3] - e2[2] * e1[3];
+    let DE = e1[3] * e2[4] - e2[3] * e1[4];
+    let DF = e1[3] * e2[5] - e2[3] * e1[5];
+    let BFpDE = BF + DE;
+    let BEmCD = BE - CD;
     return new Polynomial(AB * BC - AC * AC, AB * BEmCD + AD * BC - 2 * AC * AE, AB * BFpDE + AD * BEmCD - AE * AE - 2 * AC * AF, AB * DF + AD * BFpDE - 2 * AE * AF, AD * DF - AF * AF);
 };
 
@@ -1488,11 +1495,11 @@ Point2D.prototype.addEquals = function (that) {
     return this;
 };
 Point2D.prototype.offset = function (a, b) {
-    var result = 0;
+    let result = 0;
     if (!(b.x <= this.x || this.x + a.x <= 0)) {
-        var t = b.x * a.y - a.x * b.y;
-        var s;
-        var d;
+        let t = b.x * a.y - a.x * b.y;
+        let s;
+        let d;
         if (t > 0) {
             if (this.x < 0) {
                 s = this.x * a.y;
@@ -1585,8 +1592,8 @@ Point2D.prototype.lerp = function (that, t) {
     return new Point2D(this.x + (that.x - this.x) * t, this.y + (that.y - this.y) * t);
 };
 Point2D.prototype.distanceFrom = function (that) {
-    var dx = this.x - that.x;
-    var dy = this.y - that.y;
+    let dx = this.x - that.x;
+    let dy = this.y - that.y;
     return Math.sqrt(dx * dx + dy * dy);
 };
 Point2D.prototype.min = function (that) {
@@ -1607,8 +1614,8 @@ Point2D.prototype.setFromPoint = function (that) {
     this.y = that.y;
 };
 Point2D.prototype.swap = function (that) {
-    var x = this.x;
-    var y = this.y;
+    let x = this.x;
+    let y = this.y;
     this.x = that.x;
     this.y = that.y;
     that.x = x;
@@ -1616,19 +1623,19 @@ Point2D.prototype.swap = function (that) {
 };
 Polynomial.TOLERANCE = 1e-16;
 Polynomial.ACCURACY = 12;
-var tmp2 = Math.LN10 * Polynomial.ACCURACY;
+let tmp2 = Math.LN10 * Polynomial.ACCURACY;
 Polynomial.interpolate = function (xs, ys, n, offset, x) {
     if (xs.constructor !== Array || ys.constructor !== Array) throw new Error("Polynomial.interpolate: xs and ys must be arrays");
     if (isNaN(n) || isNaN(offset) || isNaN(x)) throw new Error("Polynomial.interpolate: n, offset, and x must be numbers");
-    var y = 0;
-    var dy = 0;
-    var c = new Array(n);
-    var d = new Array(n);
-    var ns = 0;
-    var result;
-    var diff = Math.abs(x - xs[offset]);
-    for (var i = 0; i < n; i++) {
-        var dift = Math.abs(x - xs[offset + i]);
+    let y = 0;
+    let dy = 0;
+    let c = new Array(n);
+    let d = new Array(n);
+    let ns = 0;
+    let result;
+    let diff = Math.abs(x - xs[offset]);
+    for (let i = 0; i < n; i++) {
+        let dift = Math.abs(x - xs[offset + i]);
         if (dift < diff) {
             ns = i;
             diff = dift;
@@ -1637,12 +1644,12 @@ Polynomial.interpolate = function (xs, ys, n, offset, x) {
     }
     y = ys[offset + ns];
     ns--;
-    for (var m = 1; m < n; m++) {
-        for (var i = 0; i < n - m; i++) {
-            var ho = xs[offset + i] - x;
-            var hp = xs[offset + i + m] - x;
-            var w = c[i + 1] - d[i];
-            var den = ho - hp;
+    for (let m = 1; m < n; m++) {
+        for (let i = 0; i < n - m; i++) {
+            let ho = xs[offset + i] - x;
+            let hp = xs[offset + i + m] - x;
+            let w = c[i + 1] - d[i];
+            let den = ho - hp;
             if (den == 0.0) {
                 result = {
                     y: 0,
@@ -1664,33 +1671,33 @@ Polynomial.interpolate = function (xs, ys, n, offset, x) {
 };
 
 function Polynomial() {
-    var c = new Array();
-    for (var i = arguments.length - 1; i >= 0; i--) c.push(arguments[i]);
+    let c = new Array();
+    for (let i = arguments.length - 1; i >= 0; i--) c.push(arguments[i]);
     this.coefs = c;
     this._variable = "t";
     this._s = 0;
     this.degree = c.length - 1;
 };
-var roots1 = newRoots(5);
-var roots2 = newRoots(4);
-var roots3 = newRoots(4);
-var rootsj1 = newRoots(1);
-var rootsj2 = newRoots(2);
-var rootsj3 = newRoots(3);
-var rootsj4 = newRoots(4);
-var rootsi = new Array();
-for(var i = 0; i < 12; ++i)
+let roots1 = newRoots(5);
+let roots2 = newRoots(4);
+let roots3 = newRoots(4);
+let rootsj1 = newRoots(1);
+let rootsj2 = newRoots(2);
+let rootsj3 = newRoots(3);
+let rootsj4 = newRoots(4);
+let rootsi = new Array();
+for(let i = 0; i < 12; ++i)
     rootsi.push(newRoots(i + 1));
 
 function newRoots(n){
-    var roots = new Array();
-    for(var i = 0; i < n; ++i)
+    let roots = new Array();
+    for(let i = 0; i < n; ++i)
         roots.push(-1);
     return roots;
 };
 Polynomial.prototype.init = function (coefs) {
-    var c = new Array();
-    for (var i = coefs.length - 1; i >= 0; i--) c.push(coefs[i]);
+    let c = new Array();
+    for (let i = coefs.length - 1; i >= 0; i--) c.push(coefs[i]);
     this.coefs = c;
     this._variable = "t";
     this._s = 0;
@@ -1699,34 +1706,34 @@ Polynomial.prototype.eval = peval;
 
 function peval(x) {
     if (isNaN(x)) throw new Error("Polynomial.eval: parameter must be a number");
-    var result = 0;
-    for (var i = this.coefs.length - 1; i >= 0; i--) result = result * x + this.coefs[i];
+    let result = 0;
+    for (let i = this.coefs.length - 1; i >= 0; i--) result = result * x + this.coefs[i];
     return result;
 };
 Polynomial.prototype.add = function (that) {
-    var result = new Polynomial();
-    var d1 = this.getDegree();
-    var d2 = that.getDegree();
-    var dmax = Math.max(d1, d2);
-    for (var i = 0; i <= dmax; i++) {
-        var v1 = (i <= d1) ? this.coefs[i] : 0;
-        var v2 = (i <= d2) ? that.coefs[i] : 0;
+    let result = new Polynomial();
+    let d1 = this.getDegree();
+    let d2 = that.getDegree();
+    let dmax = Math.max(d1, d2);
+    for (let i = 0; i <= dmax; i++) {
+        let v1 = (i <= d1) ? this.coefs[i] : 0;
+        let v2 = (i <= d2) ? that.coefs[i] : 0;
         result.coefs[i] = v1 + v2;
     }
     return result;
 };
 Polynomial.prototype.multiply = function (that) {
-    var result = new Polynomial();
-    for (var i = 0; i <= this.getDegree() + that.getDegree(); i++) result.coefs.push(0);
-    for (var i = 0; i <= this.getDegree(); i++)
-        for (var j = 0; j <= that.getDegree(); j++) result.coefs[i + j] += this.coefs[i] * that.coefs[j];
+    let result = new Polynomial();
+    for (let i = 0; i <= this.getDegree() + that.getDegree(); i++) result.coefs.push(0);
+    for (let i = 0; i <= this.getDegree(); i++)
+        for (let j = 0; j <= that.getDegree(); j++) result.coefs[i + j] += this.coefs[i] * that.coefs[j];
     return result;
 };
 Polynomial.prototype.divide_scalar = function (scalar) {
-    for (var i = 0; i < this.coefs.length; i++) this.coefs[i] /= scalar;
+    for (let i = 0; i < this.coefs.length; i++) this.coefs[i] /= scalar;
 };
 Polynomial.prototype.simplify = function () {
-    for (var i = this.coefs.length - 1; i >= 0; i--) {
+    for (let i = this.coefs.length - 1; i >= 0; i--) {
         if (Math.abs(this.coefs[i]) <= Polynomial.TOLERANCE) this.coefs.pop();
         else break;
     }
@@ -1734,23 +1741,23 @@ Polynomial.prototype.simplify = function () {
 Polynomial.prototype.bisection = bisection;
 
 function bisection(coefs, min, max) {
-    var last = coefs.length - 1;
-    var minValue = 0;
-    var maxValue = 0;
-    for (var i = last; i >= 0; i--) {
+    let last = coefs.length - 1;
+    let minValue = 0;
+    let maxValue = 0;
+    for (let i = last; i >= 0; i--) {
         minValue = minValue * min + coefs[i];
         maxValue = maxValue * max + coefs[i];
     }
-    var result;
+    let result;
     if (Math.abs(minValue) <= Polynomial.TOLERANCE) result = min;
     else if (Math.abs(maxValue) <= Polynomial.TOLERANCE) result = max;
     else if (minValue * maxValue <= 0) {
-        var tmp1 = Math.log(max - min);
-        var iters = Math.ceil((tmp1 + tmp2) / Math.LN2);
-        for (var i = 0; i < iters; i++) {
+        let tmp1 = Math.log(max - min);
+        let iters = Math.ceil((tmp1 + tmp2) / Math.LN2);
+        for (let i = 0; i < iters; i++) {
             result = 0.5 * (min + max);
-            var value = 0;
-            for (var j = last; j >= 0; j--) value = value * result + coefs[j];
+            let value = 0;
+            for (let j = last; j >= 0; j--) value = value * result + coefs[j];
             if (Math.abs(value) <= Polynomial.TOLERANCE) {
                 break;
             }
@@ -1766,12 +1773,12 @@ function bisection(coefs, min, max) {
     return result;
 };
 Polynomial.prototype.toString = function () {
-    var coefs = new Array();
-    var signs = new Array();
-    for (var i = this.coefs.length - 1; i >= 0; i--) {
-        var value = Math.round(this.coefs[i] * 1000) / 1000;
+    let coefs = new Array();
+    let signs = new Array();
+    for (let i = this.coefs.length - 1; i >= 0; i--) {
+        let value = Math.round(this.coefs[i] * 1000) / 1000;
         if (value != 0) {
-            var sign = (value < 0) ? " - " : " + ";
+            let sign = (value < 0) ? " - " : " + ";
             value = Math.abs(value);
             if (i > 0)
                 if (value == 1) value = this._variable;
@@ -1782,24 +1789,24 @@ Polynomial.prototype.toString = function () {
         }
     }
     signs[0] = (signs[0] == " + ") ? "" : "-";
-    var result = "";
-    for (var i = 0; i < coefs.length; i++) result += signs[i] + coefs[i];
+    let result = "";
+    for (let i = 0; i < coefs.length; i++) result += signs[i] + coefs[i];
     return result;
 };
 Polynomial.prototype.trapezoid = function (min, max, n) {
     if (isNaN(min) || isNaN(max) || isNaN(n)) throw new Error("Polynomial.trapezoid: parameters must be numbers");
-    var range = max - min;
-    var TOLERANCE = 1e-7;
+    let range = max - min;
+    let TOLERANCE = 1e-7;
     if (n == 1) {
-        var minValue = this.eval(min);
-        var maxValue = this.eval(max);
+        let minValue = this.eval(min);
+        let maxValue = this.eval(max);
         this._s = 0.5 * range * (minValue + maxValue);
     } else {
-        var it = 1 << (n - 2);
-        var delta = range / it;
-        var x = min + 0.5 * delta;
-        var sum = 0;
-        for (var i = 0; i < it; i++) {
+        let it = 1 << (n - 2);
+        let delta = range / it;
+        let x = min + 0.5 * delta;
+        let sum = 0;
+        for (let i = 0; i < it; i++) {
             sum += this.eval(x);
             x += delta;
         }
@@ -1809,19 +1816,19 @@ Polynomial.prototype.trapezoid = function (min, max, n) {
 };
 Polynomial.prototype.simpson = function (min, max) {
     if (isNaN(min) || isNaN(max)) throw new Error("Polynomial.simpson: parameters must be numbers");
-    var range = max - min;
-    var st = 0.5 * range * (this.eval(min) + this.eval(max));
-    var t = st;
-    var s = 4.0 * st / 3.0;
-    var os = s;
-    var ost = st;
-    var TOLERANCE = 1e-7;
-    var it = 1;
-    for (var n = 2; n <= 20; n++) {
-        var delta = range / it;
-        var x = min + 0.5 * delta;
-        var sum = 0;
-        for (var i = 1; i <= it; i++) {
+    let range = max - min;
+    let st = 0.5 * range * (this.eval(min) + this.eval(max));
+    let t = st;
+    let s = 4.0 * st / 3.0;
+    let os = s;
+    let ost = st;
+    let TOLERANCE = 1e-7;
+    let it = 1;
+    for (let n = 2; n <= 20; n++) {
+        let delta = range / it;
+        let x = min + 0.5 * delta;
+        let sum = 0;
+        for (let i = 1; i <= it; i++) {
             sum += this.eval(x);
             x += delta;
         }
@@ -1837,17 +1844,17 @@ Polynomial.prototype.simpson = function (min, max) {
 };
 Polynomial.prototype.romberg = function (min, max) {
     if (isNaN(min) || isNaN(max)) throw new Error("Polynomial.romberg: parameters must be numbers");
-    var MAX = 20;
-    var K = 3;
-    var TOLERANCE = 1e-6;
-    var s = new Array(MAX + 1);
-    var h = new Array(MAX + 1);
-    var result = {
+    let MAX = 20;
+    let K = 3;
+    let TOLERANCE = 1e-6;
+    let s = new Array(MAX + 1);
+    let h = new Array(MAX + 1);
+    let result = {
         y: 0,
         dy: 0
     };
     h[0] = 1.0;
-    for (var j = 1; j <= MAX; j++) {
+    for (let j = 1; j <= MAX; j++) {
         s[j - 1] = this.trapezoid(min, max, j);
         if (j >= K) {
             result = Polynomial.interpolate(h, s, K, j - K, 0.0);
@@ -1862,9 +1869,9 @@ Polynomial.prototype.getDegree = function () {
     return this.coefs.length - 1;
 };
 Polynomial.prototype.getDerivative = function () {
-    var derivative = new Polynomial();
-    var last = this.coefs.length;
-    for (var i = 1; i < last; i++) {
+    let derivative = new Polynomial();
+    let last = this.coefs.length;
+    for (let i = 1; i < last; i++) {
         derivative.coefs.push(i * this.coefs[i]);
     }
     return derivative;
@@ -1875,21 +1882,22 @@ function gr(roots) {
     //this.simplify();
     //for(i = 0; i < roots.length; ++i)
     //    roots[i] = -1;
+    let c0, c1, c2, c3, a, b, c, d, offset, discrim, halfB;
     switch (this.coefs.length - 1) {
     case 1:
         //this.getLinearRoot(roots);
-        var a = this.coefs[1];
+        a = this.coefs[1];
         if (a != 0) roots[0] = -this.coefs[0] / a;
         else roots[0] = -1;
         break;
     case 2:
         //this.getQuadraticRoots(roots);
-        var a = this.coefs[2];
-        var b = this.coefs[1] / a;
-        var c = this.coefs[0] / a;
-        var d = b * b - 4 * c;
+        a = this.coefs[2];
+        b = this.coefs[1] / a;
+        c = this.coefs[0] / a;
+        d = b * b - 4 * c;
         if (d > 0) {
-            var e = Math.sqrt(d);
+            let e = Math.sqrt(d);
             roots[0] = 0.5 * (-b + e);
             roots[1] = 0.5 * (-b - e);
         } else if (d == 0) {
@@ -1903,20 +1911,20 @@ function gr(roots) {
         break;
     case 3:
         //this.getCubicRoots(roots)
-        var c3 = this.coefs[3];
-        var c2 = this.coefs[2] / c3;
-        var c1 = this.coefs[1] / c3;
-        var c0 = this.coefs[0] / c3;
-        var a = (3 * c1 - c2 * c2) / 3;
-        var b = (2 * c2 * c2 * c2 - 9 * c1 * c2 + 27 * c0) / 27;
-        var offset = c2 / 3;
-        var discrim = b * b / 4 + a * a * a / 27;
-        var halfB = b / 2;
+        c3 = this.coefs[3];
+        c2 = this.coefs[2] / c3;
+        c1 = this.coefs[1] / c3;
+        c0 = this.coefs[0] / c3;
+        a = (3 * c1 - c2 * c2) / 3;
+        b = (2 * c2 * c2 * c2 - 9 * c1 * c2 + 27 * c0) / 27;
+        offset = c2 / 3;
+        discrim = b * b / 4 + a * a * a / 27;
+        halfB = b / 2;
         if (Math.abs(discrim) <= Polynomial.TOLERANCE) discrim = 0;
         if (discrim > 0) {
-            var e = Math.sqrt(discrim);
-            var tmp;
-            var root;
+            let e = Math.sqrt(discrim);
+            let tmp;
+            let root;
             tmp = -halfB + e;
             if (tmp >= 0) root = Math.pow(tmp, 1 / 3);
             else root = -Math.pow(-tmp, 1 / 3);
@@ -1927,16 +1935,16 @@ function gr(roots) {
             roots[1] = -1;
             roots[2] = -1;
         } else if (discrim < 0) {
-            var distance = Math.sqrt(-a / 3);
-            var angle = Math.atan2(Math.sqrt(-discrim), -halfB) / 3;
-            var cos = Math.cos(angle);
-            var sin = Math.sin(angle);
-            var sqrt3 = Math.sqrt(3);
+            let distance = Math.sqrt(-a / 3);
+            let angle = Math.atan2(Math.sqrt(-discrim), -halfB) / 3;
+            let cos = Math.cos(angle);
+            let sin = Math.sin(angle);
+            let sqrt3 = Math.sqrt(3);
             roots[0] = 2 * distance * cos - offset;
             roots[1] = -distance * (cos + sqrt3 * sin) - offset;
             roots[2] = -distance * (cos - sqrt3 * sin) - offset;
         } else {
-            var tmp;
+            let tmp;
             if (halfB >= 0) tmp = -Math.pow(halfB, 1 / 3);
             else tmp = Math.pow(-halfB, 1 / 3);
             roots[0] = 2 * tmp - offset;
@@ -1946,53 +1954,53 @@ function gr(roots) {
         break;
     case 4:
         //this.getQuarticRoots(roots);
-        var c4 = this.coefs[4];
-        var c3 = this.coefs[3] / c4;
-        var c2 = this.coefs[2] / c4;
-        var c1 = this.coefs[1] / c4;
-        var c0 = this.coefs[0] / c4;
+        let c4 = this.coefs[4];
+        c3 = this.coefs[3] / c4;
+        c2 = this.coefs[2] / c4;
+        c1 = this.coefs[1] / c4;
+        c0 = this.coefs[0] / c4;
         qpol.coefs[3] = 1;
         qpol.coefs[2] = -c2;
         qpol.coefs[1] = c3 * c1 - 4 * c0;
         qpol.coefs[0] = -c3 * c3 * c0 + 4 * c2 * c0 - c1 * c1;
-        //var resolveRoots = new Polynomial(1, -c2, c3 * c1 - 4 * c0, -c3 * c3 * c0 + 4 * c2 * c0 - c1 * c1).getCubicRoots(roots1);
-        var resolveRoots = qpol.getRoots(rootsj3);
-        var y = resolveRoots[0];
-        var discrim = c3 * c3 / 4 - c2 + y;
+        //let resolveRoots = new Polynomial(1, -c2, c3 * c1 - 4 * c0, -c3 * c3 * c0 + 4 * c2 * c0 - c1 * c1).getCubicRoots(roots1);
+        let resolveRoots = qpol.getRoots(rootsj3);
+        let y = resolveRoots[0];
+        discrim = c3 * c3 / 4 - c2 + y;
         if (Math.abs(discrim) <= Polynomial.TOLERANCE) discrim = 0;
-        var ii = 0;
+        let ii = 0;
         if (discrim > 0) {
-            var e = Math.sqrt(discrim);
-            var t1 = 3 * c3 * c3 / 4 - e * e - 2 * c2;
-            var t2 = (4 * c3 * c2 - 8 * c1 - c3 * c3 * c3) / (4 * e);
-            var plus = t1 + t2;
-            var minus = t1 - t2;
+            let e = Math.sqrt(discrim);
+            let t1 = 3 * c3 * c3 / 4 - e * e - 2 * c2;
+            let t2 = (4 * c3 * c2 - 8 * c1 - c3 * c3 * c3) / (4 * e);
+            let plus = t1 + t2;
+            let minus = t1 - t2;
             if (Math.abs(plus) <= Polynomial.TOLERANCE) plus = 0;
             if (Math.abs(minus) <= Polynomial.TOLERANCE) minus = 0;
-            var ii = 0;
+            let ii = 0;
             if (plus >= 0) {
-                var f = Math.sqrt(plus);
+                let f = Math.sqrt(plus);
                 roots[ii++] = -c3 / 4 + (e + f) / 2;
                 roots[ii++] = -c3 / 4 + (e - f) / 2;
             }
             if (minus >= 0) {
-                var f = Math.sqrt(minus);
+                let f = Math.sqrt(minus);
                 roots[ii++] = -c3 / 4 + (f - e) / 2;
                 roots[ii++] = -c3 / 4 - (f + e) / 2;
             }
         } else if (discrim < 0) {} else {
-            var t2 = y * y - 4 * c0;
+            let t2 = y * y - 4 * c0;
             if (t2 >= -Polynomial.TOLERANCE) {
                 if (t2 < 0) t2 = 0;
                 t2 = 2 * Math.sqrt(t2);
-                t1 = 3 * c3 * c3 / 4 - 2 * c2;
+                let t1 = 3 * c3 * c3 / 4 - 2 * c2;
                 if (t1 + t2 >= Polynomial.TOLERANCE) {
-                    var d = Math.sqrt(t1 + t2);
+                    let d = Math.sqrt(t1 + t2);
                     roots[ii++] = -c3 / 4 + d / 2;
                     roots[ii++] = -c3 / 4 - d / 2;
                 }
                 if (t1 - t2 >= Polynomial.TOLERANCE) {
-                    var d = Math.sqrt(t1 - t2);
+                    let d = Math.sqrt(t1 - t2);
                     roots[ii++] = -c3 / 4 + d / 2;
                     roots[ii++] = -c3 / 4 - d / 2;
                 }
@@ -2010,11 +2018,11 @@ function gr(roots) {
 };
 Polynomial.prototype.getRootsInInterval = getRootsInInterval;
 
-var dummyroots = new Array();
+let dummyroots = new Array();
 
 function getRootsInInterval(min, max, roots) {
-    var root;
-    var coefs = this.coefs;
+    let root;
+    let coefs = this.coefs;
     if (coefs.length == 2) {
         root = bisection(coefs, min, max);
         if (root != null) {
@@ -2024,17 +2032,17 @@ function getRootsInInterval(min, max, roots) {
             roots[0] = -1;
         } 
     } else {
-        var ii = 0;
-        var degree = this.degree;
-        for(var i = 0; i < roots.length; ++i)
+        let ii = 0;
+        let degree = this.degree;
+        for(let i = 0; i < roots.length; ++i)
             roots[i] = -1;
-        for (var i = 1; i < coefs.length; i++) {
+        for (let i = 1; i < coefs.length; i++) {
             dpol[degree - 1].coefs[i - 1] = i * coefs[i];
         }
         //dpol.degree = degree - 1; 
-        var droots = dpol[degree - 1].getRootsInInterval(min, max, rootsi[degree-1]);
-        var lastRoot = min;
-        for (i = 0; i <= droots.length - 1; i++) {
+        let droots = dpol[degree - 1].getRootsInInterval(min, max, rootsi[degree-1]);
+        let lastRoot = min;
+        for (let i = 0; i <= droots.length - 1; i++) {
             if(droots[i] < 0) continue;
             root = bisection(coefs, lastRoot, droots[i]);
             if (root != null) {
@@ -2051,18 +2059,18 @@ function getRootsInInterval(min, max, roots) {
 };
 
 Polynomial.prototype.getLinearRoot = function (roots) {
-    var a = this.coefs[1];
+    let a = this.coefs[1];
     if (a != 0) roots[0] = -this.coefs[0] / a;
     return roots;
 };
 Polynomial.prototype.getQuadraticRoots = function (roots) {
     if (this.getDegree() == 2) {
-        var a = this.coefs[2];
-        var b = this.coefs[1] / a;
-        var c = this.coefs[0] / a;
-        var d = b * b - 4 * c;
+        let a = this.coefs[2];
+        let b = this.coefs[1] / a;
+        let c = this.coefs[0] / a;
+        let d = b * b - 4 * c;
         if (d > 0) {
-            var e = Math.sqrt(d);
+            let e = Math.sqrt(d);
             roots[0] = 0.5 * (-b + e);
             roots[1] = 0.5 * (-b - e);
         } else if (d == 0) {
@@ -2073,20 +2081,20 @@ Polynomial.prototype.getQuadraticRoots = function (roots) {
 };
 Polynomial.prototype.getCubicRoots = function (roots) {
     if (this.getDegree() == 3) {
-        var c3 = this.coefs[3];
-        var c2 = this.coefs[2] / c3;
-        var c1 = this.coefs[1] / c3;
-        var c0 = this.coefs[0] / c3;
-        var a = (3 * c1 - c2 * c2) / 3;
-        var b = (2 * c2 * c2 * c2 - 9 * c1 * c2 + 27 * c0) / 27;
-        var offset = c2 / 3;
-        var discrim = b * b / 4 + a * a * a / 27;
-        var halfB = b / 2;
+        let c3 = this.coefs[3];
+        let c2 = this.coefs[2] / c3;
+        let c1 = this.coefs[1] / c3;
+        let c0 = this.coefs[0] / c3;
+        let a = (3 * c1 - c2 * c2) / 3;
+        let b = (2 * c2 * c2 * c2 - 9 * c1 * c2 + 27 * c0) / 27;
+        let offset = c2 / 3;
+        let discrim = b * b / 4 + a * a * a / 27;
+        let halfB = b / 2;
         if (Math.abs(discrim) <= Polynomial.TOLERANCE) discrim = 0;
         if (discrim > 0) {
-            var e = Math.sqrt(discrim);
-            var tmp;
-            var root;
+            let e = Math.sqrt(discrim);
+            let tmp;
+            let root;
             tmp = -halfB + e;
             if (tmp >= 0) root = Math.pow(tmp, 1 / 3);
             else root = -Math.pow(-tmp, 1 / 3);
@@ -2095,16 +2103,16 @@ Polynomial.prototype.getCubicRoots = function (roots) {
             else root -= Math.pow(-tmp, 1 / 3);
             roots[0] = root - offset;
         } else if (discrim < 0) {
-            var distance = Math.sqrt(-a / 3);
-            var angle = Math.atan2(Math.sqrt(-discrim), -halfB) / 3;
-            var cos = Math.cos(angle);
-            var sin = Math.sin(angle);
-            var sqrt3 = Math.sqrt(3);
+            let distance = Math.sqrt(-a / 3);
+            let angle = Math.atan2(Math.sqrt(-discrim), -halfB) / 3;
+            let cos = Math.cos(angle);
+            let sin = Math.sin(angle);
+            let sqrt3 = Math.sqrt(3);
             roots[0] = 2 * distance * cos - offset;
             roots[1] = -distance * (cos + sqrt3 * sin) - offset;
             roots[2] = -distance * (cos - sqrt3 * sin) - offset;
         } else {
-            var tmp;
+            let tmp;
             if (halfB >= 0) tmp = -Math.pow(halfB, 1 / 3);
             else tmp = Math.pow(-halfB, 1 / 3);
             roots[0] = 2 * tmp - offset;
@@ -2113,72 +2121,72 @@ Polynomial.prototype.getCubicRoots = function (roots) {
     }
     return roots;
 };
-var qpol = new Polynomial(0,0,0);
-var dpol = new Array();
-for(var i = 0; i < 12; ++i){
-    var pol = new Polynomial(0);
-    for(var j = 1; j < i + 1; j++)
+let qpol = new Polynomial(0,0,0);
+let dpol = new Array();
+for(let i = 0; i < 12; ++i){
+    let pol = new Polynomial(0);
+    for(let j = 1; j < i + 1; j++)
         pol.coefs.push(0);
     pol.degree = i;
     dpol.push(pol);
 }
-var pol33 = new Polynomial(0,0,0,0,0,0,0,0,0,0);
-var pol61 = new Polynomial(0,0,0,0,0,0);
-var pol41 = new Polynomial(0,0,0,0);
-var pol42 = new Polynomial(0,0,0,0);
+let pol33 = new Polynomial(0,0,0,0,0,0,0,0,0,0);
+let pol61 = new Polynomial(0,0,0,0,0,0);
+let pol41 = new Polynomial(0,0,0,0);
+let pol42 = new Polynomial(0,0,0,0);
 Polynomial.prototype.getQuarticRoots = function (roots) {
     if (this.getDegree() == 4) {
-        var c4 = this.coefs[4];
-        var c3 = this.coefs[3] / c4;
-        var c2 = this.coefs[2] / c4;
-        var c1 = this.coefs[1] / c4;
-        var c0 = this.coefs[0] / c4;
-        for(i = 0; i < roots1.length; ++i)
+        let c4 = this.coefs[4];
+        let c3 = this.coefs[3] / c4;
+        let c2 = this.coefs[2] / c4;
+        let c1 = this.coefs[1] / c4;
+        let c0 = this.coefs[0] / c4;
+        for(let i = 0; i < roots1.length; ++i)
             roots1[i] = -1;
         qpol.coefs[3] = 1;
         qpol.coefs[2] = -c2;
         qpol.coefs[1] = c3 * c1 - 4 * c0;
         qpol.coefs[0] = -c3 * c3 * c0 + 4 * c2 * c0 - c1 * c1;
-        //var resolveRoots = new Polynomial(1, -c2, c3 * c1 - 4 * c0, -c3 * c3 * c0 + 4 * c2 * c0 - c1 * c1).getCubicRoots(roots1);
-        var resolveRoots = qpol.getCubicRoots(roots1);
-        var y = resolveRoots[0];
-        var discrim = c3 * c3 / 4 - c2 + y;
+        //let resolveRoots = new Polynomial(1, -c2, c3 * c1 - 4 * c0, -c3 * c3 * c0 + 4 * c2 * c0 - c1 * c1).getCubicRoots(roots1);
+        let resolveRoots = qpol.getCubicRoots(roots1);
+        let y = resolveRoots[0];
+        let discrim = c3 * c3 / 4 - c2 + y;
         if (Math.abs(discrim) <= Polynomial.TOLERANCE) discrim = 0;
         if (discrim > 0) {
-            var e = Math.sqrt(discrim);
-            var t1 = 3 * c3 * c3 / 4 - e * e - 2 * c2;
-            var t2 = (4 * c3 * c2 - 8 * c1 - c3 * c3 * c3) / (4 * e);
-            var plus = t1 + t2;
-            var minus = t1 - t2;
+            let e = Math.sqrt(discrim);
+            let t1 = 3 * c3 * c3 / 4 - e * e - 2 * c2;
+            let t2 = (4 * c3 * c2 - 8 * c1 - c3 * c3 * c3) / (4 * e);
+            let plus = t1 + t2;
+            let minus = t1 - t2;
             if (Math.abs(plus) <= Polynomial.TOLERANCE) plus = 0;
             if (Math.abs(minus) <= Polynomial.TOLERANCE) minus = 0;
-            var ii = 0;
+            let ii = 0;
             if (plus >= 0) {
-                var f = Math.sqrt(plus);
+                let f = Math.sqrt(plus);
                 roots[ii + 0] = -c3 / 4 + (e + f) / 2;
                 roots[ii + 1] = -c3 / 4 + (e - f) / 2;
                 ii += 2;
             }
             if (minus >= 0) {
-                var f = Math.sqrt(minus);
+                let f = Math.sqrt(minus);
                 roots[ii + 0] = -c3 / 4 + (f - e) / 2;
                 roots[ii + 1] = -c3 / 4 - (f + e) / 2;
             }
         } else if (discrim < 0) {} else {
-            var t2 = y * y - 4 * c0;
+            let t2 = y * y - 4 * c0;
             if (t2 >= -Polynomial.TOLERANCE) {
                 if (t2 < 0) t2 = 0;
                 t2 = 2 * Math.sqrt(t2);
-                t1 = 3 * c3 * c3 / 4 - 2 * c2;
-                var ii = 0;
+                let t1 = 3 * c3 * c3 / 4 - 2 * c2;
+                let ii = 0;
                 if (t1 + t2 >= Polynomial.TOLERANCE) {
-                    var d = Math.sqrt(t1 + t2);
+                    let d = Math.sqrt(t1 + t2);
                     roots[ii + 0] = -c3 / 4 + d / 2;
                     roots[ii + 1] = -c3 / 4 - d / 2;
                     ii += 2;
                 }
                 if (t1 - t2 >= Polynomial.TOLERANCE) {
-                    var d = Math.sqrt(t1 - t2);
+                    let d = Math.sqrt(t1 - t2);
                     roots[ii + 0] = -c3 / 4 + d / 2;
                     roots[ii + 1] = -c3 / 4 - d / 2;
                 }
@@ -2251,7 +2259,7 @@ Vector2D.prototype.perpendicular = function (that) {
     return this.subtract(this.project(that));
 };
 Vector2D.prototype.project = function (that) {
-    var percent = this.dot(that) / that.dot(that);
+    let percent = this.dot(that) / that.dot(that);
     return that.multiply(percent);
 };
 Vector2D.prototype.toString = function () {
@@ -2276,7 +2284,7 @@ Shape.prototype.init = function (svgNode) {
     this.lastUpdate = null;
 }
 Shape.prototype.show = function (state) {
-    var display = (state) ? "inline" : "none";
+    let display = (state) ? "inline" : "none";
     this.visible = state;
     this.svgNode.setAttributeNS(null, "display", display);
 };
@@ -2305,9 +2313,9 @@ function Circle() {
 Circle.prototype.init = function (svgNode) {
     if (svgNode == null || svgNode.localName == "circle") {
         Circle.superclass.init.call(this, svgNode);
-        var cx = 0; //parseFloat(svgNode.getAttributeNS(null, "cx"));
-        var cy = 0; // parseFloat(svgNode.getAttributeNS(null, "cy"));
-        var r = 1; //parseFloat(svgNode.getAttributeNS(null, "r"));
+        let cx = 0; //parseFloat(svgNode.getAttributeNS(null, "cx"));
+        let cy = 0; // parseFloat(svgNode.getAttributeNS(null, "cy"));
+        let r = 1; //parseFloat(svgNode.getAttributeNS(null, "r"));
         this.center = new Handle(cx, cy, this);
         this.last = new Point2D(cx, cy);
         this.radius = new Handle(cx + r, cy, this);
@@ -2331,7 +2339,7 @@ Circle.prototype.translate = function (delta) {
     this.refresh();
 };
 Circle.prototype.refresh = function () {
-    var r = this.radius.point.distanceFrom(this.center.point);
+    let r = this.radius.point.distanceFrom(this.center.point);
     this.svgNode.setAttributeNS(null, "cx", this.center.point.x);
     this.svgNode.setAttributeNS(null, "cy", this.center.point.y);
     this.svgNode.setAttributeNS(null, "r", r);
@@ -2370,10 +2378,10 @@ Ellipse.prototype.init = function (svgNode) {
     if (svgNode == null || svgNode.localName != "ellipse")
         throw new Error("Ellipse.init: Invalid localName: " + svgNode.localName);
     Ellipse.superclass.init.call(this, svgNode);
-    var cx = parseFloat(svgNode.getAttributeNS(null, "cx"));
-    var cy = parseFloat(svgNode.getAttributeNS(null, "cy"));
-    var rx = parseFloat(svgNode.getAttributeNS(null, "rx"));
-    var ry = parseFloat(svgNode.getAttributeNS(null, "ry"));
+    let cx = parseFloat(svgNode.getAttributeNS(null, "cx"));
+    let cy = parseFloat(svgNode.getAttributeNS(null, "cy"));
+    let rx = parseFloat(svgNode.getAttributeNS(null, "rx"));
+    let ry = parseFloat(svgNode.getAttributeNS(null, "ry"));
     this.center = new Handle(cx, cy, this);
     this.radiusX = new Handle(cx + rx, cy, this);
     this.radiusY = new Handle(cx, cy + ry, this);
@@ -2389,8 +2397,8 @@ Ellipse.prototype.realize = function () {
     this.radiusY.show(false);
 };
 Ellipse.prototype.refresh = function () {
-    var rx = Math.abs(this.center.point.x - this.radiusX.point.x);
-    var ry = Math.abs(this.center.point.y - this.radiusY.point.y);
+    let rx = Math.abs(this.center.point.x - this.radiusX.point.x);
+    let ry = Math.abs(this.center.point.y - this.radiusY.point.y);
     this.svgNode.setAttributeNS(null, "cx", this.center.point.x);
     this.svgNode.setAttributeNS(null, "cy", this.center.point.y);
     this.svgNode.setAttributeNS(null, "rx", rx);
@@ -2470,10 +2478,10 @@ Line.prototype.init = function (svgNode) {
     if (svgNode == null || svgNode.localName != "line")
         throw new Error("Line.init: Invalid localName: " + svgNode.localName);
     Line.superclass.init.call(this, svgNode);
-    var x1 = parseFloat(svgNode.getAttributeNS(null, "x1"));
-    var y1 = parseFloat(svgNode.getAttributeNS(null, "y1"));
-    var x2 = parseFloat(svgNode.getAttributeNS(null, "x2"));
-    var y2 = parseFloat(svgNode.getAttributeNS(null, "y2"));
+    let x1 = parseFloat(svgNode.getAttributeNS(null, "x1"));
+    let y1 = parseFloat(svgNode.getAttributeNS(null, "y1"));
+    let x2 = parseFloat(svgNode.getAttributeNS(null, "x2"));
+    let y2 = parseFloat(svgNode.getAttributeNS(null, "y2"));
     this.p1 = new Handle(x1, y1, this);
     this.p2 = new Handle(x2, y2, this);
     this.ip = new IntersectionParams("Line", [null, null]);
@@ -2508,13 +2516,13 @@ Line.prototype.showHandles = function (state) {
     this.p2.show(state);
 };
 Line.prototype.cut = function (t) {
-    var cutPoint = this.p1.point.lerp(this.p2.point, t);
-    var newLine = this.svgNode.cloneNode(true);
+    let cutPoint = this.p1.point.lerp(this.p2.point, t);
+    let newLine = this.svgNode.cloneNode(true);
     this.p2.point.setFromPoint(cutPoint);
     this.p2.update();
     if (this.svgNode.nextSibling != null) this.svgNode.parentNode.insertBefore(newLine, this.svgNode.nextSibling);
     else this.svgNode.parentNode.appendChild(newLine);
-    var line = new Line(newLine);
+    let line = new Line(newLine);
     line.realize();
     line.p1.point.setFromPoint(cutPoint);
     line.p1.update();
@@ -2574,39 +2582,39 @@ Path.prototype.init = function (svgNode) {
     this.getIntersectionParams();
 };
 Path.prototype.realize = function () {
-    for (var i = 0; i < this.segments.length; i++) {
+    for (let i = 0; i < this.segments.length; i++) {
         this.segments[i].realize();
     }
 };
 Path.prototype.unrealize = function () {
-    for (var i = 0; i < this.segments.length; i++) {
+    for (let i = 0; i < this.segments.length; i++) {
         this.segments[i].unrealize();
     }
 };
 Path.prototype.refresh = function () {
-    var d = new Array();
-    for (var i = 0; i < this.segments.length; i++) {
+    let d = new Array();
+    for (let i = 0; i < this.segments.length; i++) {
         d.push(this.segments[i].toString());
     }
     this.svgNode.setAttributeNS(null, "d", d.join(" "));
 };
 Path.prototype.registerHandles = function () {
-    for (var i = 0; i < this.segments.length; i++) {
+    for (let i = 0; i < this.segments.length; i++) {
         this.segments[i].registerHandles();
     }
 };
 Path.prototype.unregisterHandles = function () {
-    for (var i = 0; i < this.segments.length; i++) {
+    for (let i = 0; i < this.segments.length; i++) {
         this.segments[i].unregisterHandles();
     }
 };
 Path.prototype.selectHandles = function (select) {
-    for (var i = 0; i < this.segments.length; i++) {
+    for (let i = 0; i < this.segments.length; i++) {
         this.segments[i].selectHandles(select);
     }
 };
 Path.prototype.showHandles = function (state) {
-    for (var i = 0; i < this.segments.length; i++) {
+    for (let i = 0; i < this.segments.length; i++) {
         this.segments[i].showHandles(state);
     }
 };
@@ -2615,14 +2623,14 @@ Path.prototype.appendPathSegment = function (segment) {
     this.segments.push(segment);
 };
 Path.prototype.parseData = function (d) {
-    var tokens = this.tokenize(d);
-    var index = 0;
-    var token = tokens[index];
-    var mode = "BOD";
+    let tokens = this.tokenize(d);
+    let index = 0;
+    let token = tokens[index];
+    let mode = "BOD";
     this.segments = new Array();
     while (!token.typeis(Path.EOD)) {
-        var param_length;
-        var params = new Array();
+        let param_length;
+        let params = new Array();
         if (mode == "BOD") {
             if (token.text == "M" || token.text == "m") {
                 index++;
@@ -2640,14 +2648,14 @@ Path.prototype.parseData = function (d) {
                 mode = token.text;
             }
         } if ((index + param_length) < tokens.length) {
-            for (var i = index; i < index + param_length; i++) {
-                var number = tokens[i];
+            for (let i = index; i < index + param_length; i++) {
+                let number = tokens[i];
                 if (number.typeis(Path.NUMBER)) params[params.length] = number.text;
                 else throw new Error("Parameter type is not a number: " + mode + "," + number.text);
             }
-            var segment;
-            var length = this.segments.length;
-            var previous = (length == 0) ? null : this.segments[length - 1];
+            let segment;
+            let length = this.segments.length;
+            let previous = (length == 0) ? null : this.segments[length - 1];
             if((mode == "C" || mode == "c") && params[2] == params[4] && params[3] == params[5]) {
                 mode = mode == "C" ? "L" : "l";
                 params = [params[4], params[5]];
@@ -2716,7 +2724,7 @@ Path.prototype.parseData = function (d) {
     }
 }
 Path.prototype.tokenize = function (d) {
-    var tokens = new Array();
+    let tokens = new Array();
     while (d != "") {
         if (d.match(/^([ \t\r\n,]+)/)) {
             d = d.substr(RegExp.$1.length);
@@ -2736,13 +2744,13 @@ Path.prototype.tokenize = function (d) {
 Path.prototype.intersectShape = intersectShape;
 
 function intersectShape(shape, ret) {
-    var last = this.segments.length;
-    var shape2 = shape;
-    var ip2 = shape2.ip;//getIntersectionParams();
+    let last = this.segments.length;
+    let shape2 = shape;
+    let ip2 = shape2.ip;//getIntersectionParams();
     if (ip2 == null) return;
-    for (var i = 0; i < last; i++) {
-        var shape1 = this.segments[i];
-        var ip1 = shape1.ip;//getIntersectionParams();
+    for (let i = 0; i < last; i++) {
+        let shape1 = this.segments[i];
+        let ip1 = shape1.ip;//getIntersectionParams();
         if (ip1 != null) {
             if (ip1.name == "Path") {
                 shape1.intersectShape(shape2, ret);
@@ -2751,8 +2759,8 @@ function intersectShape(shape, ret) {
                 shape2.intersectShape(shape1, ret);
                 //Intersection.intersectPathShape(shape2, shape1, ret);
             } else {
-                var method;
-                //var params;
+                let method;
+                //let params;
                 if (ip1.name < ip2.name) {
                     method = "intersect" + ip1.name + ip2.name;
                     if(method == "intersectBezier3Bezier3") {
@@ -2799,50 +2807,50 @@ AbsolutePathSegment.prototype.init = function (command, params, owner, previous)
     this.owner = owner;
     this.previous = previous;
     this.handles = new Array();
-    var index = 0;
+    let index = 0;
     while (index < params.length) {
-        var handle = new Handle(params[index], params[index + 1], owner);
+        let handle = new Handle(params[index], params[index + 1], owner);
         this.handles.push(handle);
         index += 2;
     }
 };
 AbsolutePathSegment.prototype.realize = function () {
-    for (var i = 0; i < this.handles.length; i++) {
-        var handle = this.handles[i];
+    for (let i = 0; i < this.handles.length; i++) {
+        let handle = this.handles[i];
         handle.realize();
         handle.show(false);
     }
 };
 AbsolutePathSegment.prototype.unrealize = function () {
-    for (var i = 0; i < this.handles.length; i++) {
+    for (let i = 0; i < this.handles.length; i++) {
         this.handles[i].unrealize();
     }
 };
 AbsolutePathSegment.prototype.registerHandles = function () {
-    for (var i = 0; i < this.handles.length; i++) {
+    for (let i = 0; i < this.handles.length; i++) {
         mouser.register(this.handles[i]);
     }
 };
 AbsolutePathSegment.prototype.unregisterHandles = function () {
-    for (var i = 0; i < this.handles.length; i++) {
+    for (let i = 0; i < this.handles.length; i++) {
         mouser.unregister(this.handles[i]);
     }
 };
 AbsolutePathSegment.prototype.selectHandles = function (select) {
-    for (var i = 0; i < this.handles.length; i++) {
+    for (let i = 0; i < this.handles.length; i++) {
         this.handles[i].select(select);
     }
 };
 AbsolutePathSegment.prototype.showHandles = function (state) {
-    for (var i = 0; i < this.handles.length; i++) {
+    for (let i = 0; i < this.handles.length; i++) {
         this.handles[i].show(state);
     }
 };
 AbsolutePathSegment.prototype.toString = function () {
-    var points = new Array();
-    var command = "";
+    let points = new Array();
+    let command = "";
     if (this.previous == null || this.previous.constructor != this.constuctor) command = this.command;
-    for (var i = 0; i < this.handles.length; i++) {
+    for (let i = 0; i < this.handles.length; i++) {
         points.push(this.handles[i].point.toString());
     }
     return command + points.join(" ");
@@ -2863,9 +2871,9 @@ function AbsoluteArcPath(params, owner, previous) {
     }
 }
 AbsoluteArcPath.prototype.init = function (command, params, owner, previous) {
-    var point = new Array();
-    var y = params.pop();
-    var x = params.pop();
+    let point = new Array();
+    let y = params.pop();
+    let x = params.pop();
     point.push(x, y);
     AbsoluteArcPath.superclass.init.call(this, command, point, owner, previous);
     this.rx = parseFloat(params.shift());
@@ -2875,8 +2883,8 @@ AbsoluteArcPath.prototype.init = function (command, params, owner, previous) {
     this.sweepFlag = parseFloat(params.shift());
 };
 AbsoluteArcPath.prototype.toString = function () {
-    var points = new Array();
-    var command = "";
+    let points = new Array();
+    let command = "";
     if (this.previous.constructor != this.constuctor) command = this.command;
     return command + [this.rx, this.ry, this.angle, this.arcFlag, this.sweepFlag, this.handles[0].point.toString()].join(",");
 };
@@ -2887,36 +2895,36 @@ AbsoluteArcPath.prototype.getIntersectionParams = function () {
     return ip;
 };
 AbsoluteArcPath.prototype.getCenter = function () {
-    var startPoint = this.previous.getLastPoint();
-    var endPoint = this.handles[0].point;
-    var rx = this.rx;
-    var ry = this.ry;
-    var angle = this.angle * Math.PI / 180;
-    var c = Math.cos(angle);
-    var s = Math.sin(angle);
-    var TOLERANCE = 1e-6;
-    var halfDiff = startPoint.subtract(endPoint).divide(2);
-    var x1p = halfDiff.x * c + halfDiff.y * s;
-    var y1p = halfDiff.x * -s + halfDiff.y * c;
-    var x1px1p = x1p * x1p;
-    var y1py1p = y1p * y1p;
-    var lambda = (x1px1p / (rx * rx)) + (y1py1p / (ry * ry));
+    let startPoint = this.previous.getLastPoint();
+    let endPoint = this.handles[0].point;
+    let rx = this.rx;
+    let ry = this.ry;
+    let angle = this.angle * Math.PI / 180;
+    let c = Math.cos(angle);
+    let s = Math.sin(angle);
+    let TOLERANCE = 1e-6;
+    let halfDiff = startPoint.subtract(endPoint).divide(2);
+    let x1p = halfDiff.x * c + halfDiff.y * s;
+    let y1p = halfDiff.x * -s + halfDiff.y * c;
+    let x1px1p = x1p * x1p;
+    let y1py1p = y1p * y1p;
+    let lambda = (x1px1p / (rx * rx)) + (y1py1p / (ry * ry));
     if (lambda > 1) {
-        var factor = Math.sqrt(lambda);
+        let factor = Math.sqrt(lambda);
         rx *= factor;
         ry *= factor;
     }
-    var rxrx = rx * rx;
-    var ryry = ry * ry;
-    var rxy1 = rxrx * y1py1p;
-    var ryx1 = ryry * x1px1p;
-    var factor = (rxrx * ryry - rxy1 - ryx1) / (rxy1 + ryx1);
+    let rxrx = rx * rx;
+    let ryry = ry * ry;
+    let rxy1 = rxrx * y1py1p;
+    let ryx1 = ryry * x1px1p;
+    let factor = (rxrx * ryry - rxy1 - ryx1) / (rxy1 + ryx1);
     if (Math.abs(factor) < TOLERANCE) factor = 0;
-    var sq = Math.sqrt(factor);
+    let sq = Math.sqrt(factor);
     if (this.arcFlag == this.sweepFlag) sq = -sq;
-    var mid = startPoint.add(endPoint).divide(2);
-    var cxp = sq * rx * y1p / ry;
-    var cyp = sq * -ry * x1p / rx;
+    let mid = startPoint.add(endPoint).divide(2);
+    let cxp = sq * rx * y1p / ry;
+    let cyp = sq * -ry * x1p / rx;
     return new Point2D(cxp * c - cyp * s + mid.x, cxp * s + cyp * c + mid.y);
 };
 AbsoluteCurveto2.prototype = new AbsolutePathSegment();
@@ -2969,14 +2977,14 @@ function AbsoluteHLineto(params, owner, previous) {
     }
 }
 AbsoluteHLineto.prototype.init = function (command, params, owner, previous) {
-    var prevPoint = previous.getLastPoint();
-    var point = new Array();
+    let prevPoint = previous.getLastPoint();
+    let point = new Array();
     point.push(params.pop(), prevPoint.y);
     AbsoluteHLineto.superclass.init.call(this, command, point, owner, previous);
 };
 AbsoluteHLineto.prototype.toString = function () {
-    var points = new Array();
-    var command = "";
+    let points = new Array();
+    let command = "";
     if (this.previous.constructor != this.constuctor) command = this.command;
     return command + this.handles[0].point.x;
 };
@@ -2992,8 +3000,8 @@ function AbsoluteLineto(params, owner, previous) {
     this.getIntersectionParams();
 }
 AbsoluteLineto.prototype.toString = function () {
-    var points = new Array();
-    var command = "";
+    let points = new Array();
+    let command = "";
     if (this.previous.constructor != this.constuctor)
         if (this.previous.constructor != AbsoluteMoveto) command = this.command;
     return command + this.handles[0].point.toString();
@@ -3026,11 +3034,11 @@ function AbsoluteSmoothCurveto2(params, owner, previous) {
     this.ip = new IntersectionParams("Bezier2", [null, null, null]);
 }
 AbsoluteSmoothCurveto2.prototype.getControlPoint = function () {
-    var lastPoint = this.previous.getLastPoint();
-    var point;
+    let lastPoint = this.previous.getLastPoint();
+    let point;
     if (this.previous.command.match(/^[QqTt]$/)) {
-        var ctrlPoint = this.previous.getControlPoint();
-        var diff = ctrlPoint.subtract(lastPoint);
+        let ctrlPoint = this.previous.getControlPoint();
+        let diff = ctrlPoint.subtract(lastPoint);
         point = lastPoint.subtract(diff);
     } else {
         point = lastPoint;
@@ -3055,11 +3063,11 @@ function AbsoluteSmoothCurveto3(params, owner, previous) {
     this.getIntersectionParams();
 }
 AbsoluteSmoothCurveto3.prototype.getFirstControlPoint = function () {
-    var lastPoint = this.previous.getLastPoint();
-    var point;
+    let lastPoint = this.previous.getLastPoint();
+    let point;
     if (this.previous.command.match(/^[SsCc]$/)) {
-        var lastControl = this.previous.getLastControlPoint();
-        var diff = lastControl.subtract(lastPoint);
+        let lastControl = this.previous.getLastControlPoint();
+        let diff = lastControl.subtract(lastPoint);
         point = lastPoint.subtract(diff);
     } else {
         point = lastPoint;
@@ -3088,24 +3096,24 @@ RelativePathSegment.prototype.init = function (command, params, owner, previous)
     this.owner = owner;
     this.previous = previous;
     this.handles = new Array();
-    var lastPoint;
+    let lastPoint;
     if (this.previous) lastPoint = this.previous.getLastPoint();
     else lastPoint = new Point2D(0, 0);
-    var index = 0;
+    let index = 0;
     while (index < params.length) {
-        var handle = new Handle(lastPoint.x + params[index], lastPoint.y + params[index + 1], owner);
+        let handle = new Handle(lastPoint.x + params[index], lastPoint.y + params[index + 1], owner);
         this.handles.push(handle);
         index += 2;
     }
 };
 RelativePathSegment.prototype.toString = function () {
-    var points = new Array();
-    var command = "";
-    var lastPoint;
+    let points = new Array();
+    let command = "";
+    let lastPoint;
     if (this.previous) lastPoint = this.previous.getLastPoint();
     else lastPoint = new Point2D(0, 0); if (this.previous == null || this.previous.constructor != this.constructor) command = this.command;
-    for (var i = 0; i < this.handles.length; i++) {
-        var point = this.handles[i].point.subtract(lastPoint);
+    for (let i = 0; i < this.handles.length; i++) {
+        let point = this.handles[i].point.subtract(lastPoint);
         points.push(point.toString());
     }
     return command + points.join(" ");
@@ -3122,8 +3130,8 @@ function RelativeClosePath(params, owner, previous) {
     this.getIntersectionParams();
 }
 RelativeClosePath.prototype.getLastPoint = function () {
-    var current = this.previous;
-    var point;
+    let current = this.previous;
+    let point;
     while (current) {
         if (current.command.match(/^[mMzZ]$/)) {
             point = current.getLastPoint();
@@ -3189,13 +3197,14 @@ function RelativeLineto(params, owner, previous) {
     this.getIntersectionParams();
 }
 RelativeLineto.prototype.toString = function () {
-    var points = new Array();
-    var command = "";
-    var lastPoint;
-    var point;
+    let points = new Array();
+    let command = "";
+    let lastPoint;
+    let point;
     if (this.previous) lastPoint = this.previous.getLastPoint();
     else lastPoint = new Point(0, 0);
     point = this.handles[0].point.subtract(lastPoint);
+    let cmd = "";
     if (this.previous.constructor != this.constuctor)
         if (this.previous.constructor != RelativeMoveto) cmd = this.command;
     return cmd + point.toString();
@@ -3228,11 +3237,11 @@ function RelativeSmoothCurveto2(params, owner, previous) {
     this.ip = new IntersectionParams("Bezier2", [null, null, null]);
 }
 RelativeSmoothCurveto2.prototype.getControlPoint = function () {
-    var lastPoint = this.previous.getLastPoint();
-    var point;
+    let lastPoint = this.previous.getLastPoint();
+    let point;
     if (this.previous.command.match(/^[QqTt]$/)) {
-        var ctrlPoint = this.previous.getControlPoint();
-        var diff = ctrlPoint.subtract(lastPoint);
+        let ctrlPoint = this.previous.getControlPoint();
+        let diff = ctrlPoint.subtract(lastPoint);
         point = lastPoint.subtract(diff);
     } else {
         point = lastPoint;
@@ -3256,11 +3265,11 @@ function RelativeSmoothCurveto3(params, owner, previous) {
     this.ip = new IntersectionParams("Bezier3", [null, null, null, null]);
 }
 RelativeSmoothCurveto3.prototype.getFirstControlPoint = function () {
-    var lastPoint = this.previous.getLastPoint();
-    var point;
+    let lastPoint = this.previous.getLastPoint();
+    let point;
     if (this.previous.command.match(/^[SsCc]$/)) {
-        var lastControl = this.previous.getLastControlPoint();
-        var diff = lastControl.subtract(lastPoint);
+        let lastControl = this.previous.getLastControlPoint();
+        let diff = lastControl.subtract(lastPoint);
         point = lastPoint.subtract(diff);
     } else {
         point = lastPoint;
@@ -3289,11 +3298,11 @@ function Polygon(svgNode) {
 Polygon.prototype.init = function (svgNode) {
     if (svgNode.localName == "polygon") {
         Polygon.superclass.init.call(this, svgNode);
-        var points = svgNode.getAttributeNS(null, "points").split(/[\s,]+/);
+        let points = svgNode.getAttributeNS(null, "points").split(/[\s,]+/);
         this.handles = new Array();
-        for (var i = 0; i < points.length; i += 2) {
-            var x = parseFloat(points[i]);
-            var y = parseFloat(points[i + 1]);
+        for (let i = 0; i < points.length; i += 2) {
+            let x = parseFloat(points[i]);
+            let y = parseFloat(points[i + 1]);
             this.handles.push(new Handle(x, y, this));
         }
         this.ip = new IntersectionParams("Polygon", new Array(this.handles.length));
@@ -3303,38 +3312,38 @@ Polygon.prototype.init = function (svgNode) {
 };
 Polygon.prototype.realize = function () {
     if (this.svgNode != null) {
-        for (var i = 0; i < this.handles.length; i++) {
+        for (let i = 0; i < this.handles.length; i++) {
             this.handles[i].realize();
             this.handles[i].show(false);
         }
     }
 };
 Polygon.prototype.refresh = function () {
-    var points = new Array();
-    for (var i = 0; i < this.handles.length; i++) {
+    let points = new Array();
+    for (let i = 0; i < this.handles.length; i++) {
         points.push(this.handles[i].point.toString());
     }
     this.svgNode.setAttributeNS(null, "points", points.join(" "));
 };
 Polygon.prototype.registerHandles = function () {
-    for (var i = 0; i < this.handles.length; i++) mouser.register(this.handles[i]);
+    for (let i = 0; i < this.handles.length; i++) mouser.register(this.handles[i]);
 };
 Polygon.prototype.unregisterHandles = function () {
-    for (var i = 0; i < this.handles.length; i++) mouser.unregister(this.handles[i]);
+    for (let i = 0; i < this.handles.length; i++) mouser.unregister(this.handles[i]);
 };
 Polygon.prototype.selectHandles = function (select) {
-    for (var i = 0; i < this.handles.length; i++) this.handles[i].select(select);
+    for (let i = 0; i < this.handles.length; i++) this.handles[i].select(select);
 };
 Polygon.prototype.showHandles = function (state) {
-    for (var i = 0; i < this.handles.length; i++) this.handles[i].show(state);
+    for (let i = 0; i < this.handles.length; i++) this.handles[i].show(state);
 };
 Polygon.prototype.pointInPolygon = function (point) {
-    var length = this.handles.length;
-    var counter = 0;
-    var x_inter;
-    var p1 = this.handles[0].point;
-    for (var i = 1; i <= length; i++) {
-        var p2 = this.handles[i % length].point;
+    let length = this.handles.length;
+    let counter = 0;
+    let x_inter;
+    let p1 = this.handles[0].point;
+    for (let i = 1; i <= length; i++) {
+        let p2 = this.handles[i % length].point;
         if (point.y > Math.min(p1.y, p2.y)) {
             if (point.y <= Math.max(p1.y, p2.y)) {
                 if (point.x <= Math.max(p1.x, p2.x)) {
@@ -3352,32 +3361,32 @@ Polygon.prototype.pointInPolygon = function (point) {
     return (counter % 2 == 1);
 };
 Polygon.prototype.getIntersectionParams = function () {
-    for (var i = 0; i < this.handles.length; i++) {
+    for (let i = 0; i < this.handles.length; i++) {
         this.ip.params[i] = this.handles[i].point;
     }
     return this.ip;
 };
 Polygon.prototype.getArea = function () {
-    var area = 0;
-    var length = this.handles.length;
-    var neg = 0;
-    var pos = 0;
-    for (var i = 0; i < length; i++) {
-        var h1 = this.handles[i].point;
-        var h2 = this.handles[(i + 1) % length].point;
+    let area = 0;
+    let length = this.handles.length;
+    let neg = 0;
+    let pos = 0;
+    for (let i = 0; i < length; i++) {
+        let h1 = this.handles[i].point;
+        let h2 = this.handles[(i + 1) % length].point;
         area += (h1.x * h2.y - h2.x * h1.y);
     }
     return area / 2;
 };
 Polygon.prototype.getCentroid = function () {
-    var length = this.handles.length;
-    var area6x = 6 * this.getArea();
-    var x_sum = 0;
-    var y_sum = 0;
-    for (var i = 0; i < length; i++) {
-        var p1 = this.handles[i].point;
-        var p2 = this.handles[(i + 1) % length].point;
-        var cross = (p1.x * p2.y - p2.x * p1.y);
+    let length = this.handles.length;
+    let area6x = 6 * this.getArea();
+    let x_sum = 0;
+    let y_sum = 0;
+    for (let i = 0; i < length; i++) {
+        let p1 = this.handles[i].point;
+        let p2 = this.handles[(i + 1) % length].point;
+        let cross = (p1.x * p2.y - p2.x * p1.y);
         x_sum += (p1.x + p2.x) * cross;
         y_sum += (p1.y + p2.y) * cross;
     }
@@ -3390,16 +3399,16 @@ Polygon.prototype.isCounterClockwise = function () {
     return this.getArea() > 0;
 };
 Polygon.prototype.isConcave = function () {
-    var positive = 0;
-    var negative = 0;
-    var length = this.handles.length;
-    for (var i = 0; i < length; i++) {
-        var p0 = this.handles[i].point;
-        var p1 = this.handles[(i + 1) % length].point;
-        var p2 = this.handles[(i + 2) % length].point;
-        var v0 = Vector2D.fromPoints(p0, p1);
-        var v1 = Vector2D.fromPoints(p1, p2);
-        var cross = v0.cross(v1);
+    let positive = 0;
+    let negative = 0;
+    let length = this.handles.length;
+    for (let i = 0; i < length; i++) {
+        let p0 = this.handles[i].point;
+        let p1 = this.handles[(i + 1) % length].point;
+        let p2 = this.handles[(i + 2) % length].point;
+        let v0 = Vector2D.fromPoints(p0, p1);
+        let v1 = Vector2D.fromPoints(p1, p2);
+        let cross = v0.cross(v1);
         if (cross < 0) {
             negative++;
         } else {
@@ -3423,10 +3432,10 @@ function Rectangle(svgNode) {
 Rectangle.prototype.init = function (svgNode) {
     if (svgNode.localName == "rect") {
         Rectangle.superclass.init.call(this, svgNode);
-        var x = parseFloat(svgNode.getAttributeNS(null, "x"));
-        var y = parseFloat(svgNode.getAttributeNS(null, "y"));
-        var width = parseFloat(svgNode.getAttributeNS(null, "width"));
-        var height = parseFloat(svgNode.getAttributeNS(null, "height"));
+        let x = parseFloat(svgNode.getAttributeNS(null, "x"));
+        let y = parseFloat(svgNode.getAttributeNS(null, "y"));
+        let width = parseFloat(svgNode.getAttributeNS(null, "width"));
+        let height = parseFloat(svgNode.getAttributeNS(null, "height"));
         this.p1 = new Handle(x, y, this);
         this.p2 = new Handle(x + width, y + height, this);
         this.ip = new IntersectionParams("Rectangle", [null, null]);
@@ -3443,8 +3452,8 @@ Rectangle.prototype.realize = function () {
     }
 };
 Rectangle.prototype.refresh = function () {
-    var min = this.p1.point.min(this.p2.point);
-    var max = this.p1.point.max(this.p2.point);
+    let min = this.p1.point.min(this.p2.point);
+    let max = this.p1.point.max(this.p2.point);
     this.svgNode.setAttributeNS(null, "x", min.x);
     this.svgNode.setAttributeNS(null, "y", min.y);
     this.svgNode.setAttributeNS(null, "width", max.x - min.x);
