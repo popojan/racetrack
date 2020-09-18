@@ -1,6 +1,7 @@
 function MoveResult() {
     this.offTrackFraction = null;
     this.intersections = null;
+    this.legal = null;
 }
 
 function Move(p) {
@@ -96,6 +97,7 @@ Trajectory.prototype.evaluate = function(i, moves) {
     let result = moves[i].result;
     result.offTrackFraction = offTrackFraction;
     result.intersections = intersections;
+    result.legal = this.legal(i);
     return this;
 };
 
@@ -132,11 +134,11 @@ Trajectory.prototype.ic = function(ci, i) {
 
 Trajectory.prototype.legal = function(i) {
     if(i === undefined) i = this.moves.length - 1;
-    let c = this.c(i - 1);
+    let c = this.c(i-1);
     let p = this.getMove(i).point;
     let dx = p.x - c.x;
     let dy = p.y - c.y;
-    let R = this.steeringRadius(i);
+    let R = this.steeringRadius(i-1);
     return dx*dx + dy*dy <= R*R;
 };
 
@@ -228,5 +230,5 @@ Trajectory.prototype.steeringRadius = function(i) {
 
 Trajectory.prototype.speedMomentum = function(i) {
     let w = this.getOffTrackFraction(i);
-    return (1 - w) * this.track.S + w * 0.5 * this.track.S;
+    return (1.0 - w) * this.track.S + w * 0.5 * this.track.S;
 };

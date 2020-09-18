@@ -11,6 +11,23 @@ function Designer(name) {
     return this;
 }
 
+//TODO naive and very slow
+Designer.prototype.getProgress = function (p, N) {
+    N = N||100;
+    let len = this.length();
+    let best = Infinity;
+    let progress  = null;
+    for(let i = 0; i < N; ++i) {
+        let q = new P().mov(this.at(len*i/N));
+        let d = q.sub(p).len()
+        if(d < best) {
+            best = d;
+            progress = i/N;
+        }
+    }
+    return progress;
+}
+
 Designer.prototype.copy = function() {
     let b = new Designer(this.name);
     b.sl = this.sl.slice();

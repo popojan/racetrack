@@ -34,10 +34,10 @@ View.prototype.resize = function (width, height, bbox) {
     this.canvas.width = width;
     this.canvas.height = height;
     this.trackPath = undefined;
+    this.rasterizedTrack = undefined;
 };
 View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
-    this.clear();
     this.drawTrack(model.track);
 
     for (let i = 0; i < model.race.players.length; ++i) {
@@ -116,15 +116,18 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
 
 View.prototype.drawTrack = function(track) {
     let ctx = this.context;
+    this.clear();
     if(this.trackPath === undefined) {
         this.trackPath = new Path2D();
         const p0 = new Path2D(track.renderPath);
         const m = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix();
         const t = m.translate(this.translation.x, this.translation.y).scale(this.scale.x, this.scale.y);
         this.trackPath.addPath(p0, t);
+        //this.rasterizedTrack = ctx.getImageData(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
     }
     ctx.fillStyle = "#ffffff";
     ctx.fill(this.trackPath);
+    //ctx.putImageData(this.rasterizedTrack, 0, 0);
 };
 
 View.prototype.v = function(p) {

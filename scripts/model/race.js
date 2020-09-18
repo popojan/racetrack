@@ -1,9 +1,11 @@
 function Race() {
     this.players = [];
+    this.ais = [];
 }
 
-Race.prototype.addPlayer = function(player) {
+Race.prototype.addPlayer = function(player, ai) {
     this.players.push(player);
+    this.ais.push(ai)
 };
 
 Race.prototype.advanceAnimation = function(timeDelta) {

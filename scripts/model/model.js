@@ -25,7 +25,7 @@ Model.prototype.startRace = function (trackDesign, playerCount) {
         let player = new Player("player" + i, steeringRadius, collisionRadius);
         let trajectory = new Trajectory(this.track)
         player.trajectory = trajectory.move(this.track.startPositions[i], 1);;
-        this.race.addPlayer(player);
+        this.race.addPlayer(player, i == 0 ? null: new AI(player));
     }
     this.race.start();
 };
@@ -107,12 +107,14 @@ Model.prototype.finalizeMove = function(p) {
             let player = this.race.players[j];
             let adjustedMove = player.trajectory.b2t(player.adjustedMove);
             player.trajectory.altmoves[player.trajectory.moves.length] = undefined;
-            player.trajectory.move(adjustedMove, player.trajectory.moves.length)
+            player.trajectory.move(adjustedMove, player.trajectory.moves.length);
         }
         this.playerToMove = 0;
     } else {
         this.playerToMove += 1;
     }
+    if (this.race.ais[this.playerToMove] !== null) {
+        this.race.ais[this.playerToMove].randomMove(this);
+    }
     this.adjust(p);
-
 };
