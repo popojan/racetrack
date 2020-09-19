@@ -108,6 +108,9 @@ Model.prototype.finalizeMove = function(p) {
             let adjustedMove = player.trajectory.b2t(player.adjustedMove);
             player.trajectory.altmoves[player.trajectory.moves.length] = undefined;
             player.trajectory.move(adjustedMove, player.trajectory.moves.length);
+            let score = player.trajectory.score();
+            if(score < Infinity)
+                console.log("SCORE = " + score);
         }
         this.playerToMove = 0;
     } else {

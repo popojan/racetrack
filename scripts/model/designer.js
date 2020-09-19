@@ -13,7 +13,7 @@ function Designer(name) {
 
 //TODO naive and very slow
 Designer.prototype.getProgress = function (p, N) {
-    N = N||100;
+    N = N||50;
     let len = this.length();
     let best = Infinity;
     let progress  = null;

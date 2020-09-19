@@ -1,6 +1,7 @@
 function MoveResult() {
     this.offTrackFraction = null;
     this.intersections = null;
+    this.checkpoints = null;
     this.legal = null;
 }
 
@@ -72,7 +73,8 @@ Trajectory.prototype.move = function(p, i, moves) {
 
 Trajectory.prototype.evaluate = function(i, moves) {
     moves = moves || this.moves;
-    let intersections = this.crash(i);
+    let kevinLine = this.asKevinLine(i);
+    let intersections = this.crash(i, kevinLine);
     let count = intersections.count;
     let points = intersections.points;
     points.sort(function(a, b) {return (a.x!== null && b.x!==null && a.t - b.t);});
@@ -97,6 +99,7 @@ Trajectory.prototype.evaluate = function(i, moves) {
     let result = moves[i].result;
     result.offTrackFraction = offTrackFraction;
     result.intersections = intersections;
+    result.checkpoints = this.finished(i, kevinLine);
     result.legal = this.legal(i);
     return this;
 };
@@ -142,25 +145,11 @@ Trajectory.prototype.legal = function(i) {
     return dx*dx + dy*dy <= R*R;
 };
 
-Trajectory.prototype.crash = function(i) {
+Trajectory.prototype.crash = function(i, kevinLine) {
     if(i === undefined){
         i = this.moves.length -1;
     }
-    let bez = this.bez(i);
-    let A = bez[0];
-    let b = bez[1];
-    let B = bez[2];
-    //if(B.x < 0 || B.x >= track.w || B.y < 0 || B.y >= track.h)
-    //    return true;
-    let kevinLine = new Path();
-    kevinLine.parseData("M0,0 S1,1,1,1");
-    kevinLine.getIntersectionParams();
-    kevinLine.segments[0].handles[0].point.x = A.x;
-    kevinLine.segments[0].handles[0].point.y = A.y;
-    kevinLine.segments[1].handles[0].point.x = b.x;
-    kevinLine.segments[1].handles[0].point.y = b.y;
-    kevinLine.segments[1].handles[1].point.x = B.x;
-    kevinLine.segments[1].handles[1].point.y = B.y;
+    kevinLine = kevinLine || this.asKevinLine(i);
     let inter = new Intersection("I", 10);
     inter.t = 2;
     return intersectShapes(this.track.collisionPath, kevinLine, inter);
@@ -232,3 +221,76 @@ Trajectory.prototype.speedMomentum = function(i) {
     let w = this.getOffTrackFraction(i);
     return (1.0 - w) * this.track.S + w * 0.5 * this.track.S;
 };
+
+Trajectory.prototype.asKevinLine = function(i) {
+    let bez = this.bez(i);
+    let A = bez[0];
+    let b = bez[1];
+    let B = bez[2];
+    let kevinLine = new Path();
+    kevinLine.parseData("M0,0 S1,1,1,1");
+    kevinLine.getIntersectionParams();
+    kevinLine.segments[0].handles[0].point.x = A.x;
+    kevinLine.segments[0].handles[0].point.y = A.y;
+    kevinLine.segments[1].handles[0].point.x = b.x;
+    kevinLine.segments[1].handles[0].point.y = b.y;
+    kevinLine.segments[1].handles[1].point.x = B.x;
+    kevinLine.segments[1].handles[1].point.y = B.y;
+    return kevinLine;
+};
+
+Trajectory.prototype.finished = function(i, kevinLine) {
+    let ret = [];
+    kevinLine = kevinLine || this.asKevinLine(i);
+    for(let j = 0; j < this.track.design.checks.length; ++j) {
+        let finish = this.track.design.finishline(j);
+        let inter = new Intersection("I", 10);
+        inter.t = 2;
+        let sPath = "M" + finish.x1 + "," + finish.y1 + "L" + finish.x2 + "," + finish.y2;
+        let collisionPath = new Path();
+        collisionPath.parseData(sPath);
+        let intersections = intersectShapes(collisionPath, kevinLine, inter);
+        for (let k = 0; k < intersections.count; ++k) {
+            let p = intersections.points[k];
+            let b = (finish.x2 - finish.x1);
+            let a = -(finish.y2 - finish.y1);
+            let c = - (a * finish.x1 + b * finish.y1)
+            let h = kevinLine.segments[1].handles[1].point;
+            let dir = a * h.x + b * h.y + c;
+            ret.push({"point":p, "id":j, "direction": Math.sign(dir)});
+        }
+    }
+    ret.sort(function(a, b) { return a.point.t - b.point.t; })
+    //if(ret.length > 0)
+    //    console.log(JSON.stringify(ret));
+    return ret;
+}
+
+Trajectory.prototype.score = function() {
+    let nextCheckpoint = 0;
+    let lastCheckpoint = this.track.design.checks.length;
+    for(let i = 2; i < this.moves.length; ++i) {
+        let move = this.moves[i];
+        //traditional strict rule (no cuts allowed)
+        if(move.result == null) {
+            continue;
+        }
+        if (move.result.offTrackFraction > 0.0) {
+            console.log("offTrack");
+            return Infinity;
+        }
+        for (let j = 0; j < move.result.checkpoints.length; ++j) {
+            let check = move.result.checkpoints[j];
+            if (check.dir < 0) {
+                console.log("badDir");
+                return Infinity;
+            }
+            if (check.id === nextCheckpoint)
+                nextCheckpoint += 1;
+            if (nextCheckpoint === lastCheckpoint)
+                return i - 1 + check.point.t;
+        }
+    }
+    console.log("noMoreMoves");
+    return Infinity
+}

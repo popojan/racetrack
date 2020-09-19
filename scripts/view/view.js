@@ -57,14 +57,20 @@ View.prototype.render = function(model) {
         }
         for (let j = 0; j < lastMove; ++j) {
             this.drawMove(t, j, j === lastMove-1, this.colors[i], 1.0)
+            if(i ===1 ) { // DEBUG
+                let R = t.steeringRadius(j);
+                let S1 = t.t2b(player.trajectory.c(j), j);
+                this.drawCircle(S1, R, this.colors[i], j / lastMove);
+            }
         }
     }
 };
 
-View.prototype.drawCircle = function(c, R, color) {
+View.prototype.drawCircle = function(c, R, color, op) {
+    op = op || 1.0;
     let ctx = this.context;
     ctx.beginPath();
-    ctx.globalAlpha = 0.2;
+    ctx.globalAlpha = 0.2 * op;
     let cv = this.v(c);
     ctx.arc(cv.x, cv.y, R*this.scale.x, 0, 2*Math.PI);
     ctx.lineWidth = 1;
@@ -127,6 +133,40 @@ View.prototype.drawTrack = function(track) {
     }
     ctx.fillStyle = "#ffffff";
     ctx.fill(this.trackPath);
+    ctx.lineWidth = 1;
+    let solid = ctx.getLineDash();
+    ctx.setLineDash([3,2]);
+    for(let i = 0; i < track.design.checks.length; ++i) {
+        let check = track.design.finishline(i);
+        ctx.moveTo(check.x1 * this.scale.x + this.translation.x, check.y1 * this.scale.y + this.translation.y);
+        ctx.lineTo(check.x2 * this.scale.x + this.translation.x, check.y2 * this.scale.y + this.translation.y);
+        ctx.strokeStyle = "#808080";
+        ctx.stroke();
+    }
+    let _this = this;
+    let tx = function(x) { return x* _this.scale.x + _this.translation.x; }
+    let ty = function(y) { return y* _this.scale.y + _this.translation.y; }
+    ctx.setLineDash([1,1]);
+    for(let i = 0; i < track.design.gridcount; ++i) {
+        let p = track.design.startpos(i);
+        let vx = p.vx*6;
+        let vy = p.vy*6;
+        let a = new P(tx(p.x - 3*vx/2 + vy), ty(p.y - 3*vy/2 - vx));
+        let d = new P(tx(p.x - 3*vx/2 - vy), ty(p.y - 3*vy/2 + vx));
+        let b = new P(tx(p.x + vx/2 + vy), ty(p.y + vy/2 - vx));
+        let c = new P(tx(p.x + vx/2 - vy), ty(p.y + vy/2 + vx));
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.lineTo(c.x, c.y);
+        ctx.lineTo(d.x, d.y);
+        ctx.stroke();
+        /*this.drawArrow(
+            new P().mov(p).sub(new P(p.vx, p.vy)),
+            p,"#808080", false, false);*/
+    }
+    ctx.setLineDash(solid);
     //ctx.putImageData(this.rasterizedTrack, 0, 0);
 };
 
