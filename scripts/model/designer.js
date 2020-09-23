@@ -425,6 +425,24 @@ Designer.prototype.length = function() {
     return len;
 }
 
+Designer.prototype.cover = function(lcount, wcount) {
+    let len = this.length();
+    let points = [];
+    for(let lat = 0; lat < 1.0; lat += 1.0/lcount) {
+        let line = this.line(lat * len);
+        let a = new P(line.x1, line.y1);
+        let b = new P(line.x2, line.y2);
+        let w = new P().mov(b).sub(a);
+        for(let wat = 0.01; wat < 1.0; wat += 0.98 / (wcount-1)) {
+            let x = line.x1 + wat * w.x;
+            let y = line.y1 + wat * w.y;
+            let point = {x:x, y:y, angle: line.angle, lat: lat, wat: wat};
+            points.push(point);
+        }
+    }
+    return points;
+};
+
 Designer.prototype.at = function(len) {
     for(let i = 0; i < this.segments.length; i++) {
         let seg = this.segments[i];
@@ -459,20 +477,29 @@ Designer.prototype.check = function(t) {
     this.checks.push(t);
 };
 
-Designer.prototype.finishline = function(i) {
+Designer.prototype.line = function(at) {
+    let len = this.length();
+    let p = this.at(at % len);
+    let b = (p.a+90)/180*Math.PI;
+    let side = this.w;
+    let s = {x1: p.x+side*Math.cos(b), y1: p.y + side*Math.sin(b), angle:b,
+        x2: p.x-side*Math.cos(b), y2: p.y - side*Math.sin(b)
+    };
+    return s;
+};
+
+Designer.prototype.finishLine = function(i) {
     if(i === undefined) 
         i = this.check.length - 1;
     let len = this.length();
     let at = this.checks[i];
     if(at < len)
         at += len;
-    let p = this.at(at % len);
-    let b = (p.a+90)/180*Math.PI;
-    let side = this.w;
-    let s = {x1: p.x+side*Math.cos(b), y1: p.y + side*Math.sin(b),
-        x2: p.x-side*Math.cos(b), y2: p.y - side*Math.sin(b), order: i +1, direction:1, finish: (i === this.checks.length - 1)
-    };
-    return s;
+    let dic = this.line(at);
+    dic.order = i +1;
+    dic.direction = 1;
+    dic.finish=  (i === this.checks.length - 1);
+    return dic;
 };
 
 Designer.prototype.startpos = function(sid) {

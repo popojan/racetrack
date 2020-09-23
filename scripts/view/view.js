@@ -55,27 +55,65 @@ View.prototype.render = function(model) {
                 this.drawCircle(S2, R, this.colors[i]);
             }
         }
+        if(lastMove === 1) {
+            let p = model.track.startPositions[i];
+            this.drawArrow(new P().mov(p).sub(new P(p.vx, p.vy)), p, this.colors[i], true, false);
+        }
         for (let j = 0; j < lastMove; ++j) {
             this.drawMove(t, j, j === lastMove-1, this.colors[i], 1.0)
-            if(i ===1 ) { // DEBUG
+            if(i === -1 ) { // DEBUG
                 let R = t.steeringRadius(j);
                 let S1 = t.t2b(player.trajectory.c(j), j);
                 this.drawCircle(S1, R, this.colors[i], j / lastMove);
             }
         }
     }
+
+
+    let ctx = this.context;
+    ctx.strokeStyle = "#eb0000";
+    ctx.lineWidth = 1;
+
+    for(let i = 0; i < model.race.players.length; ++i) {
+        if (!model.race.ais[i]) continue;
+
+            let tt = model.race.ais[i].traj;
+            if(!tt) continue;
+            let m = tt.moves[0].point;
+            ctx.moveTo(this.scale.x * m.x + this.translation.x, this.scale.y * m.y + this.translation.y);
+            //console.log(JSON.stringify(model.race.ais[1].traj.moves));
+            ctx.beginPath();
+            if(!tt) continue;
+            for (let j = 1; j < tt.moves.length; ++j) {
+                    //this.drawMove(tt, j, true, this.colors[i]);
+                    //let S1 = tt.t2b(tt.c(j), j);
+                    //this.drawCircle(S1, tt.steeringRadius(j), this.colors[1], j / tt.moves.length);
+                    let m0 = tt.moves[j - 1].point;
+                    let m = tt.moves[j].point;
+                    //this.drawArrow(m0, m, true, false);
+                    ctx.lineTo(this.scale.x*m.x+this.translation.x, this.scale.y * m.y + this.translation.y);
+                    ctx.stroke();
+                }
+    }
+    //ctx.stroke();
 };
 
-View.prototype.drawCircle = function(c, R, color, op) {
+View.prototype.drawCircle = function(c, R, color, op, filled) {
     op = op || 1.0;
     let ctx = this.context;
     ctx.beginPath();
-    ctx.globalAlpha = 0.2 * op;
-    let cv = this.v(c);
+    ctx.globalAlpha = op;
+    let cv = this.v(new P().mov(c));
     ctx.arc(cv.x, cv.y, R*this.scale.x, 0, 2*Math.PI);
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = color;
-    ctx.stroke();
+    if(filled){
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    else {
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+    }
     ctx.globalAlpha = 1.0;
 };
 
@@ -137,7 +175,7 @@ View.prototype.drawTrack = function(track) {
     let solid = ctx.getLineDash();
     ctx.setLineDash([3,2]);
     for(let i = 0; i < track.design.checks.length; ++i) {
-        let check = track.design.finishline(i);
+        let check = track.design.finishLine(i);
         ctx.moveTo(check.x1 * this.scale.x + this.translation.x, check.y1 * this.scale.y + this.translation.y);
         ctx.lineTo(check.x2 * this.scale.x + this.translation.x, check.y2 * this.scale.y + this.translation.y);
         ctx.strokeStyle = "#808080";
@@ -146,7 +184,7 @@ View.prototype.drawTrack = function(track) {
     let _this = this;
     let tx = function(x) { return x* _this.scale.x + _this.translation.x; }
     let ty = function(y) { return y* _this.scale.y + _this.translation.y; }
-    ctx.setLineDash([1,1]);
+    ctx.setLineDash([1,2]);
     for(let i = 0; i < track.design.gridcount; ++i) {
         let p = track.design.startpos(i);
         let vx = p.vx*6;
@@ -167,6 +205,9 @@ View.prototype.drawTrack = function(track) {
             p,"#808080", false, false);*/
     }
     ctx.setLineDash(solid);
+    for(let i = 0; i < track.points.length; ++i) {
+        this.drawCircle(track.points[i], 0.5, "#eb0000", 0.25, true);
+    }
     //ctx.putImageData(this.rasterizedTrack, 0, 0);
 };
 

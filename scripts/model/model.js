@@ -25,7 +25,7 @@ Model.prototype.startRace = function (trackDesign, playerCount) {
         let player = new Player("player" + i, steeringRadius, collisionRadius);
         let trajectory = new Trajectory(this.track)
         player.trajectory = trajectory.move(this.track.startPositions[i], 1);;
-        this.race.addPlayer(player, i == 0 ? null: new AI(player));
+        this.race.addPlayer(player, i < 1 ? null: new AI(this.track, player));
     }
     this.race.start();
 };
@@ -98,11 +98,17 @@ Model.prototype.updateMove = function(p) {
     this.adjust(p);
 };
 
+function waitForResult(best) {
+    model.initializeMove(best);
+    model.finalizeMove(best);
+}
+
 Model.prototype.finalizeMove = function(p) {
     this.adjust(p);
     this.initialPosition.x = null;
     let n = this.race.players.length;
-    if (this.playerToMove === n - 1) {
+
+    if (this.playerToMove === n-1) {
         for (let j = 0; j < n; ++j) {
             let player = this.race.players[j];
             let adjustedMove = player.trajectory.b2t(player.adjustedMove);
@@ -117,7 +123,9 @@ Model.prototype.finalizeMove = function(p) {
         this.playerToMove += 1;
     }
     if (this.race.ais[this.playerToMove] !== null) {
-        this.race.ais[this.playerToMove].randomMove(this);
+        let best = this.race.ais[this.playerToMove].randomMove(waitForResult);
+        this.initializeMove(best);
+        this.finalizeMove(best);
     }
     this.adjust(p);
-};
+}

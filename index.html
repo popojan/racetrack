@@ -20,6 +20,7 @@
 <script src="scripts/model/trajectory.js"></script>
 <script src="scripts/view/view.js"></script>
 <script src="scripts/controller/controller.js"></script>
+<script src="scripts/algorithm/quadtree.js"></script>
 <script src="scripts/algorithm/utils.js"></script>
 <script src="scripts/algorithm/optimization.js"></script>
 <script src="scripts/algorithm/Intersection.min.js"></script>
@@ -32,7 +33,7 @@
     let model      = new Model().updates(view);
     let controller = new Controller("body").manipulates(model, view);
     let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 80 15 P 900 F 100";
-    model.startRace(track, 6);
+    model.startRace(track, 2);
 
     controller.resizePaper();
 

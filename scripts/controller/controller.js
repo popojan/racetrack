@@ -20,19 +20,33 @@ Controller.prototype.move = function (event) {
     if(!this.ready || this.model.race.players.length < 1) return;
     this.view.getModelCoords(event, this.eax);
     this.model.updateMove(this.eax);
-}
+};
 
-Controller.prototype.down = function (event) {
+Controller.prototype._down = function (event) {
     if(!this.ready || this.model.race.players.length < 1) return;
     this.view.getModelCoords(event, this.eax);
     this.model.initializeMove(this.eax);
-}
+};
 
-Controller.prototype.up = function (event) {
+Controller.prototype.down = function(event) {
+    let _this = this;
+    setTimeout(function () {
+        return _this._down(event);
+    }, 10);
+};
+
+Controller.prototype._up = function (event) {
     if(!this.ready || this.model.race.players.length < 1) return;
     this.view.getModelCoords(event, this.eax);
     this.model.finalizeMove(this.eax);
-}
+};
+
+Controller.prototype.up = function(event) {
+    let _this = this;
+    setTimeout(function () {
+        return _this._up(event);
+    }, 10);
+};
 
 Controller.prototype.resizePaper = function(e) {
     let w = window.innerWidth

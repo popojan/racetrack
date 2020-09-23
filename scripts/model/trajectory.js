@@ -20,7 +20,7 @@ function Trajectory (track) {
     this.altmoves = [undefined];
     this.animationMove = 1;
     this.animationMoveFraction = 0;
-    this.animationPeriod = 250;
+    this.animationPeriod = 350;
     return this;
 }
 
@@ -112,6 +112,9 @@ Trajectory.prototype.evaluate = function(i, moves) {
     return ret.join(", ");
 };*/
 
+Trajectory.prototype.get = function(i) {
+    return new P().mov(this.getMove(i).point);
+}
 Trajectory.prototype.c = function(i, b) {
     if(i === undefined) i = this.moves.length - 1;
     let ma = this.getMove(i-1);
@@ -150,7 +153,7 @@ Trajectory.prototype.crash = function(i, kevinLine) {
         i = this.moves.length -1;
     }
     kevinLine = kevinLine || this.asKevinLine(i);
-    let inter = new Intersection("I", 10);
+    let inter = new Intersection("I", 100);
     inter.t = 2;
     return intersectShapes(this.track.collisionPath, kevinLine, inter);
 };
@@ -243,7 +246,7 @@ Trajectory.prototype.finished = function(i, kevinLine) {
     let ret = [];
     kevinLine = kevinLine || this.asKevinLine(i);
     for(let j = 0; j < this.track.design.checks.length; ++j) {
-        let finish = this.track.design.finishline(j);
+        let finish = this.track.design.finishLine(j);
         let inter = new Intersection("I", 10);
         inter.t = 2;
         let sPath = "M" + finish.x1 + "," + finish.y1 + "L" + finish.x2 + "," + finish.y2;
@@ -266,31 +269,41 @@ Trajectory.prototype.finished = function(i, kevinLine) {
     return ret;
 }
 
-Trajectory.prototype.score = function() {
+Trajectory.prototype.score = function(limit) {
+    limit = limit||Infinity;
     let nextCheckpoint = 0;
     let lastCheckpoint = this.track.design.checks.length;
-    for(let i = 2; i < this.moves.length; ++i) {
+    for(let i = 1; i < Math.min(this.moves.length, limit); ++i) {
         let move = this.moves[i];
         //traditional strict rule (no cuts allowed)
         if(move.result == null) {
+            console.log("noResult");
             continue;
         }
         if (move.result.offTrackFraction > 0.0) {
             console.log("offTrack");
             return Infinity;
         }
-        for (let j = 0; j < move.result.checkpoints.length; ++j) {
+        for (let j = 0; limit >= Infinity && j < move.result.checkpoints.length; ++j) {
             let check = move.result.checkpoints[j];
-            if (check.dir < 0) {
-                console.log("badDir");
-                return Infinity;
-            }
-            if (check.id === nextCheckpoint)
+            if (check.id === nextCheckpoint) {
+
+                if (check.direction <= 0) {
+                    console.log("badDir");
+                    return Infinity;
+                }
+                //console.log("checkpoint");
                 nextCheckpoint += 1;
-            if (nextCheckpoint === lastCheckpoint)
-                return i - 1 + check.point.t;
+            }
+            if (nextCheckpoint === lastCheckpoint) {
+                return (i + check.point.t);
+            }
+        }
+        if(limit < Infinity && i === limit-1) {
+            return this.get(limit).sub(this.get(i)).len();
         }
     }
-    console.log("noMoreMoves");
-    return Infinity
+
+    //console.log("noMoreMoves " + this.moves.length) ;
+    return Infinity;
 }

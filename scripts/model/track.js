@@ -28,9 +28,14 @@ Track.prototype.createFrom = function(designString) {
         this.startPositions.push(design.startpos(i));
     }
     this.design = design;
+    this.cover = null;
     return this;
 };
 
+Track.prototype.initAI = function(lcount, wcount, maxK) {
+    this.points = this.design.cover(lcount, wcount);
+    this.cover = new QuadTree(this.points, 0, maxK);
+}
 
 Track.prototype.getBoundingBox = function(margin) {
     let x1 = Infinity;

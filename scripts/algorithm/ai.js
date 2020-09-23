@@ -1,180 +1,160 @@
-function AI (player) {
+function AI (track, player) {
     this.player = player;
-    this.dist =player.steeringRadius;
+    track.initAI(512,13, 12);
+    this.track = track;
+    this.depth0 = 3;
+    this.MAGIC = 16;
+    this.samples = [16];
+}
+AI.prototype.getProgress = function(p) {
+    /*   let bestd = Infinity;
+    let best = null;
+    for(let i = 0; i < this.track.points.length; ++i) {
+        let d = new P().mov(this.track.points[i]).sub(p).len();
+        if(d < bestd) {
+            bestd = d;
+            best = p;
+            if(bestd < 0.1*this.track.defaultSteeringRadius)
+                break;
+        }
+    }
+    return best.lat;*/
+    let nearest = this.track.cover.getNearest(p, 1, []);
+    return nearest[0].lat;
 }
 
-AI.prototype._randomMove = function(model, n) {
-    let c = this.player.trajectory.c(n-1);
-    let angle = 2 * (Math.random() - 0.5) * Math.PI;
+AI.prototype._randomMove = function(traj, n) {
+    let c = traj.c(n-1);
+    let angle = 2*(Math.random() - 0.5) * Math.PI;
     let dir = new P(Math.cos(angle), -Math.sin(angle));
-    let acc = this.player.trajectory.steeringRadius(n-1);
+    let acc = traj.steeringRadius(n-1);
     return new P().mov(c).add(new P().mov(dir).mul(0.99*acc));
 }
-/**
- *   constant speed naive path
- */
-AI.prototype._goodMove = function(model, n0) {
-    let n = n0 - 1;//this.player.trajectory.moves.length-1;
-    let last = this.player.trajectory.moves[n].point;
-    let before = this.player.trajectory.moves[Math.max(0,n-1)].point;
-    let d = model.track.design;
-    let p = d.getProgress(last,100);
-    let len = d.length();
-    let target = d.at((p*len+3*this.dist+new P().mov(last).sub(before).len()*2)%len);
-    let c = this.player.trajectory.c(n);
-    let R = this.player.trajectory.steeringRadius(n);
-    //console.log(JSON.stringify([R, model.track.defaultSteeringRadius]));
-    return this.player.trajectory.b2t(new P().mov(c).add(new P().mov(target).sub(last).n().mul(0.99*R)),n);
-}
-/*
-function rw(traj, heur, iter) {
-    let tries = 0;
-    let bestk = 0;
-    while(traj.score() >= Infinity && traj.length < iter && tries < 20) {
-
-        var c = traj.c();
-        var dx = track.R*(2*Math.random() - 1.0);
-        var dy = track.R*(2*Math.random() - 1.0);
-        var len = Math.sqrt(dx*dx + dy*dy);
-        if(len > track.R) {
-            dx *= track.R/(len+1);
-            dy *= track.R/(len+1);
-        }
-        var q = traj.c(dx, dy);
-        var p = traj[traj.length -1];
-        var pqx = q.x - p.x;
-        var pqy = q.y - p.y;
-        len = Math.sqrt(pqx*pqx + pqy*pqy);
-        if(len > track.R) {
-            pqx *= track.R/(len+1);
-            pqy *= track.R/(len+1);
-        }
-        q = {x: Math.round(p.x + pqx), y: Math.round(p.y + pqy)};
-        if(heur) {
-            var idx = bestk;
-            var min = Infinity;
-            var dx1, dy1, dx2, dy2;
-            for(var k = bestk; k < heur.length; ++k) {
-                dx1 = q.x - heur[k].x;
-                dy1 = q.y - heur[k].y;
-                if(!(new Traj(track).m(q).crash(heur[k]))) {
-                    idx = k;
-                }
-            }
-            bestk = idx;
-            dx1 = q.x - heur[idx].x;
-            dy1 = q.y - heur[idx].y;
-            dx2 = p.x - heur[idx].x;
-            dy2 = p.y - heur[idx].y;
-            if(dx1*dx1+dy1*dy1 > dx2*dx2 + dy2*dy2)
-                continue;
-        }
-        if(traj.legal(q) && !traj.crash(q)) {
-            traj.m(q);
-            tries = 0;
-        }
-        tries +=1;
-    }
-    return traj;
-}*/
-AI.prototype.improveAt = function (i) {
-    let improved = false;
-    let origMoves = this.player.trajectory.moves;
-    //this.player.trajectory.moves = Array.from(origMoves);
-
-    let f = function (moves, i) {
-        return new P().mov(moves[i].point).sub(moves[Math.max(0,i-1)].point).len()
-    }
-    let g = function (trajectory, i) {
-        return new P().mov(trajectory.c(Math.max(0, i-1))).sub(trajectory.moves[i].point).len();
-    }
-    let trajectory = this.player.trajectory;
-    let a = origMoves[i];
-    let b = origMoves[i+1];
-    let c = origMoves[i+2];
-    let ap = new P().mov(a.point);
-    let bp = null;
-    if(b) bp = new P().mov(b.point);
-    let cp = null;
-    if(c) cp = new P().mov(c.point);
-    let man1 = Infinity, man2 = Infinity;
-    if(b) man1 = g(trajectory, i+1);
-    if(c) man2 = g(trajectory, i+2);
-    for(let j = 0; j < 1; ++j) {
-        let cc = trajectory.c(i-1);
-        let q =  new P().mov(cc).add(new P(Math.random(), Math.random()).n().mul(Math.random() *model.track.defaultSteeringRadius));
-        trajectory.move(q, i);
-        improved = true;
-        let r = trajectory.moves[i].result;
-        if(r.offTrackFraction > 0.0 || !r.legal
-            /*|| f(trajectory.moves, i) <= f(origMoves, i)*/) {
-            improved = false;
-        }
-        if(improved && !(b === undefined)) {
-            trajectory.move(bp, i+1);
-            let r = trajectory.moves[i+1].result;
-            if(r.offTrackFraction > 0.0 || !r.legal
-                /*|| g(trajectory, i+1) < man1*/
-                /*|| f(trajectory.moves, i+1) >= f(origMoves, i+1)*/) {
-                improved = false;
-            }
-        }
-        if(improved && !(c === undefined)) {
-            trajectory.move(cp, i+2);
-            let r = trajectory.moves[i+2].result;
-            if(r.offTrackFraction > 0.0 || !r.legal
-                /*|| (f(trajectory.moves, i+2) >= f(origMoves, i+2))*/)
-                /*&& g(trajectory, i+2) < man2)*/{
-                improved = false;
-            }
-
-        }
-
-        if(improved) {
-            return true;
-        } else {
-            trajectory.move(ap, i);
-            if (b) trajectory.move(bp, i + 1);
-            if (c) trajectory.move(cp, i + 2);
-        }
-    }
-    return false;
+function randn_bm() {
+    var u = 0, v = 0;
+    while(u === 0) u = Math.random(); //Converting [0,1) to (0,1)
+    while(v === 0) v = Math.random();
+    return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
 }
 
-AI.prototype.randomMove = function(model) {
-    let n0 = this.player.trajectory.moves.length;
-    let origMoves = this.player.trajectory.moves;
-    let bestProgress = Infinity;
+AI.prototype._goodMove = function(traj, n0, depth0, depth, advance0) {
+    let n = n0 - 1;
+    let A = traj.t2b(traj.get(n), n);
+    let R = traj.steeringRadius(n);
+    let c = traj.t2b(traj.c(n), n);
+
+    let bestd = -Infinity;
     let best = null;
-    this.player.trajectory.moves = JSON.parse(JSON.stringify(origMoves));
-    let K = 2;
-    for (let i = 0; i < K; ++i) {
-        let p = this._goodMove(model, n0 + i);
-        this.player.trajectory.move(p, n0 + i);
-        //console.log("legal(" + i + ") = " + this.player.trajectory.moves[n0 + i].result.legal);
+    let bestCollision = null;
+    let bestdCollision = -Infinity;
+    let N = this.samples;
+    let K = N[Math.min(N.length-1, depth0 - depth)];
+    advance0 = advance0 === undefined ? this.getProgress(A) : advance0;
+    let mult = K/this.MAGIC;
+    for (let ii = 0; ii < K; ++ii) {
+        let RR = null;
+        let kk = null;
+        let ll = null;
+        if(ii < 1*mult) {
+            RR = 0.5;//Math.random() * 0.05;
+            kk = 1*mult;
+            ll = 1*mult;
+        }
+        else if(ii < 4*mult) {
+            RR = 0.66;// + Math.random() * 0.05;
+            kk = 4*mult;
+            ll = 3*mult;
+        }
+        else if(ii < 9*mult) {
+            RR = 0.75;// + Math.random() * 0.05;;
+            kk = 9*mult;
+            ll = 5*mult;
+        }
+        else {
+            RR = 0.99;
+            kk = 16*mult;
+            ll = 7*mult;
+        }
+        let da = Math.max(Math.min((ii-(kk-ll))/ll,1),0);
+       // console.log(da);
+        let dv = new P(Math.sin(2*Math.PI*(da)), Math.cos(2*Math.PI*(da))).mul(RR* R);
+        //let dv = new P(-0.5+Math.random(), -0.5+Math.random()).n().mul(0.99 * R);
+        let from = c;
+        //if(ii >= K && best != null) {
+        //    from = best;
+           // dv = dv.add(new P(randn_bm(), randn_bm()).mul(0.3 * 0.2 * R));
+        //}
+        let Bt = new P().mov(from).add(dv);
+        let B = traj.b2t(new P().mov(Bt), n)
+        traj.move(B, n0);
+        let res = traj.getMove(n0).result;
+        //if (res.offTrackFraction > 0.0) {
+        //    continue;
+        //}
+        if(!res.legal) {
+            //--ii;
+            continue;
+        }
+
+        let advance = this.getProgress(Bt) - advance0;
+        if(advance > 0.5) advance -= 1.0;
+        if(advance < -0.5) advance += 1.0;
+        let dis = null;
+        let disCollision = null;
+        let collision = res.offTrackFraction > 0.0;
+        //if(collision)
+        //    continue;
+        if(depth <= 0) {
+            dis = advance;
+            disCollision = advance;
+        } else {
+            let rec = this._goodMove(traj, n0 + 1, depth0, depth - 1, advance0);
+            collision |= (rec[0] == null);
+            dis = rec[1];
+            disCollision = rec[3];
+        }
+        if (!collision && dis > bestd) {
+            bestd = dis;
+            best = Bt;
+        }
+        if(collision && disCollision > bestdCollision) {
+            bestdCollision = disCollision;
+            bestCollision = Bt;
+        }
     }
-    /*let newMoves = JSON.parse(JSON.stringify(this.player.trajectory.moves));
-    for(let iter = 0; iter < 100; ++iter) {
-        this.player.trajectory.moves = newMoves;
-        for (let i = 2*K; i >= 0; --i) {
-            let j = Math.floor(i%(K-1));//Math.random()*K);
-            this.improveAt(n0 + j);
-        }
-        let lm = this.player.trajectory.moves[n0 + K-1].point;
-        let ln = this.player.trajectory.moves[n0 + K -2].point;
-        let progress = new P().mov(lm).sub(ln).len();
-        if (progress < bestProgress) {
-            let newMoves = this.player.trajectory.moves;
-            let p = this.player.trajectory.t2b(newMoves[n0].point, n0);
-            best = p;
-            console.log("Better = " + progress + " < " + bestProgress);
-            bestProgress = progress;
-        }
-    }*/
-    let newMoves = this.player.trajectory.moves;
-    best = this.player.trajectory.t2b(newMoves[n0].point, n0);
-    this.player.trajectory.moves = origMoves;
-    model.initializeMove(best);
-    model.finalizeMove(best);
+    traj.moves = traj.moves.slice(0, n0);
+    return [best, bestd, bestCollision, bestdCollision];
+}
+
+
+function distance(a, b) {
+    let x = a.x - b.x;
+    let y = a.y - b.y;
+    return Math.sqrt(x*x + y*y);
+}
+
+function cross(a, b) {
+    return a.x*b.y-b.x*a.y;
+}
+
+function vector(a, b) {
+    return new P(b.x - a.x, b.y - a.y);
+}
+
+function online(a, u, t) {
+    return new P(a.x + t*u.x, a.y + t*u.y);
+}
+
+AI.prototype.think = //function(ai, callback) {
+    function (ai) {
+        let n0 = ai.player.trajectory.moves.length;
+        let m = ai._goodMove(ai.player.trajectory, n0, ai.depth0, ai.depth0);
+        return m[0] === null ? m[2] : m[0];//callback(m);
+    };
+//};
+
+AI.prototype.randomMove = function(callback) {
+    return this.think(this);
+    //setTimeout(this.think(this, callback), 0);
     //console.log(newMoves[n0].result.legal + " ___ " + newMoves[n0].result.offTrackFraction);
 }
