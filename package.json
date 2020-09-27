@@ -4,6 +4,7 @@
   "dependencies": {
     "kld-intersections": "^0.7.0",
     "optimization-js": "^1.5.0",
-    "raphael": "^2.3.0"
+    "raphael": "^2.3.0",
+    "tinyqueue": "^2.0.3"
   }
 }
