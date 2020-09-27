@@ -17,36 +17,43 @@ Controller.prototype.manipulates = function(model, view) {
 };
 
 Controller.prototype.move = function (event) {
-    if(!this.ready || this.model.race.players.length < 1) return;
+    if(!this.ready || this.model.race.players.length < 1
+        || this.model.race.ais[this.model.playerToMove] !== null) return;
     this.view.getModelCoords(event, this.eax);
     this.model.updateMove(this.eax);
 };
 
-Controller.prototype._down = function (event) {
-    if(!this.ready || this.model.race.players.length < 1) return;
+Controller.prototype.down = function (event) {
+    if(!this.ready || this.model.race.players.length < 1
+        || this.model.race.ais[this.model.playerToMove] !== null) return;
+    this.humanDown = true;
     this.view.getModelCoords(event, this.eax);
     this.model.initializeMove(this.eax);
 };
-
+/*
 Controller.prototype.down = function(event) {
     let _this = this;
     setTimeout(function () {
         return _this._down(event);
     }, 10);
 };
-
-Controller.prototype._up = function (event) {
-    if(!this.ready || this.model.race.players.length < 1) return;
+*/
+Controller.prototype.up = function (event) {
+    if(!this.ready || this.model.race.players.length < 1
+        || this.model.race.ais[this.model.playerToMove] !== null
+        || !this.humanDown) return;
+    this.humanDown = false;
     this.view.getModelCoords(event, this.eax);
+    console.log("Human played");
     this.model.finalizeMove(this.eax);
 };
 
-Controller.prototype.up = function(event) {
+/*Controller.prototype.up = function(event) {
     let _this = this;
     setTimeout(function () {
         return _this._up(event);
     }, 10);
-};
+}*/
 
 Controller.prototype.resizePaper = function(e) {
     let w = window.innerWidth

@@ -14,6 +14,8 @@ Race.prototype.advanceAnimation = function(timeDelta) {
     }
 };
 
-Race.prototype.start = function() {
+Race.prototype.start = function(model) {
+    if(this.ais[0]) {
 
+    }
 }

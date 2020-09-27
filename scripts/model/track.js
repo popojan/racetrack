@@ -29,12 +29,34 @@ Track.prototype.createFrom = function(designString) {
     }
     this.design = design;
     this.cover = null;
+    this.point = null;
     return this;
 };
 
-Track.prototype.initAI = function(lcount, wcount, maxK) {
+Track.prototype.initAI = function(lcount, wcount, maxK, limit, alpha, beta) {
     this.points = this.design.cover(lcount, wcount);
-    this.cover = new QuadTree(this.points, 0, maxK);
+    let bounds = this.getBoundingBox(0.0);
+    console.log(JSON.stringify(bounds));
+    this.cover = new QuadTree(bounds, true, 128, 16);
+    for(let i = 0; i < this.points.length; ++i) {
+        this.cover.insert(this.points[i]);
+    }
+    //this.design.optimal(32, 7, 64, 1.0, 1.0);
+    //this.optim = this.design.optimalPath.points;;
+/*
+    let ps = this.design.optimalPath.points;
+    let qs = [];
+    for(let i = 1; i < ps.length; ++i) {
+        let len = new P().mov(ps[i]).sub(ps[i-1]);
+        let steps = len.len()/3;
+        let ldiff = ps[i].lat-ps[i-1].lat;
+        if(ldiff > 0.5) ldiff -= 1.0;
+        if(ldiff < -0.5) ldiff += 1.0;
+        for(let j = 0; j < steps; ++j) {
+            qs.push({x:ps[i-1].x + len.x*j/steps, y:ps[i-1].y + len.y*j/steps, lat: (ps[i-1].lat + j/steps*(ldiff))%1.0});
+        }
+    }
+    this.optim = qs;//new QuadTree(qs, 0, maxK);*/
 }
 
 Track.prototype.getBoundingBox = function(margin) {

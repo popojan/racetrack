@@ -16,18 +16,24 @@ Model.prototype.now = function() {
     return window.performance.now();
 };
 
-Model.prototype.startRace = function (trackDesign, playerCount) {
+Model.prototype.startRace = function (trackDesign, players) {
     this.track = new Track().createFrom(trackDesign);
     this.race = new Race();
     let steeringRadius = this.track.defaultSteeringRadius;
     let collisionRadius = this.track.defaultCollisionRadius;
-    for(let i = 0; i < playerCount; ++i) {
+    for(let i = 0; i < this.track.design.gridcount; ++i) {
+        let who = players[i] === undefined ? "0" : players[i];
+        if(who === "0")
+            continue;
         let player = new Player("player" + i, steeringRadius, collisionRadius);
         let trajectory = new Trajectory(this.track)
         player.trajectory = trajectory.move(this.track.startPositions[i], 1);;
-        this.race.addPlayer(player, i < 1 ? null: new AI(this.track, player));
+        this.race.addPlayer(player, (who === "h" || who === "H") ? null: new AI(this.track, player));
     }
     this.race.start();
+    if(this.race.ais[0]) {
+        this.aiMove();
+    }
 };
 
 Model.prototype.updates = function (view) {
@@ -79,6 +85,7 @@ Model.prototype.preciseMove = function (B) {
 
 
 Model.prototype.adjust = function(p) {
+    this.coord = p;
     this.preciseMove(p);
     this.avoid.adjust(this.race.players, this.playerToMove);
     for(let i = 0; i <= this.playerToMove; ++i) {
@@ -98,12 +105,33 @@ Model.prototype.updateMove = function(p) {
     this.adjust(p);
 };
 
-function waitForResult(best) {
+function waitForResult(ret) {
+    let best = ret[0];
     model.initializeMove(best);
+    console.log("Computer played");
+    ret[2].thinking = false;
     model.finalizeMove(best);
+    console.log("finalized");
+}
+
+function computerPlay(ai) {
+    return ai.randomMove(waitForResult);
+    /*return function () {
+        if (!ai.randomMove(waitForResult)) ;
+            setTimeout(computerPlay(ai), 100);
+    }*/
+}
+
+
+Model.prototype.aiMove = function() {
+    if (this.race.ais[this.playerToMove] !== null) {
+        console.log("computer Play " + this.playerToMove);
+        computerPlay(this.race.ais[this.playerToMove]);
+    }
 }
 
 Model.prototype.finalizeMove = function(p) {
+    console.log("finalize move");
     this.adjust(p);
     this.initialPosition.x = null;
     let n = this.race.players.length;
@@ -122,10 +150,6 @@ Model.prototype.finalizeMove = function(p) {
     } else {
         this.playerToMove += 1;
     }
-    if (this.race.ais[this.playerToMove] !== null) {
-        let best = this.race.ais[this.playerToMove].randomMove(waitForResult);
-        this.initializeMove(best);
-        this.finalizeMove(best);
-    }
-    this.adjust(p);
+    if(!this.aiMove())
+        this.adjust(p);
 }

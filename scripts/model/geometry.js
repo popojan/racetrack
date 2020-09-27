@@ -32,7 +32,7 @@ P.prototype.len = function() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
 };
 P.prototype.n = function() {
-    let len = this.len();
+    let len = this.len()||1.0;
     this.x /= len;
     this.y /= len;
     return this;

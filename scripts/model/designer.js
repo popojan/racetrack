@@ -11,23 +11,6 @@ function Designer(name) {
     return this;
 }
 
-//TODO naive and very slow
-Designer.prototype.getProgress = function (p, N) {
-    N = N||50;
-    let len = this.length();
-    let best = Infinity;
-    let progress  = null;
-    for(let i = 0; i < N; ++i) {
-        let q = new P().mov(this.at(len*i/N));
-        let d = q.sub(p).len()
-        if(d < best) {
-            best = d;
-            progress = i/N;
-        }
-    }
-    return progress;
-}
-
 Designer.prototype.copy = function() {
     let b = new Designer(this.name);
     b.sl = this.sl.slice();
@@ -424,8 +407,23 @@ Designer.prototype.length = function() {
     }
     return len;
 }
+function pathLength(tup2) {
+    let a = tup2[0];
+    let c = tup2[1];
+    let ac = new P().mov(a).sub(c);
+    return ac.len();
+}
 
-Designer.prototype.cover = function(lcount, wcount) {
+function pathCurvature(tup3) {
+    let a = tup3[0];
+    let c = tup3[2];
+    let b = tup3[1];
+    let ab = new P().mov(b).sub(a);
+    let bc = new P().mov(b).sub(c);
+    return Math.acos((ab.x*bc.x + ab.y*bc.y)/ab.len()/bc.len())/Math.PI * (ab.len()+bc.len());
+}
+Designer.prototype.cover = function(lcount, wcount, psize) {
+    psize = psize||0.01;
     let len = this.length();
     let points = [];
     for(let lat = 0; lat < 1.0; lat += 1.0/lcount) {
@@ -433,14 +431,70 @@ Designer.prototype.cover = function(lcount, wcount) {
         let a = new P(line.x1, line.y1);
         let b = new P(line.x2, line.y2);
         let w = new P().mov(b).sub(a);
-        for(let wat = 0.01; wat < 1.0; wat += 0.98 / (wcount-1)) {
+        for(let wat = 0.01; wat < 0.99; wat += 1.0/(wcount-1)) {
             let x = line.x1 + wat * w.x;
             let y = line.y1 + wat * w.y;
-            let point = {x:x, y:y, angle: line.angle, lat: lat, wat: wat};
+            let point = {x: x, y: y,
+                angle: line.angle, lat: lat, wat: wat};
             points.push(point);
         }
     }
     return points;
+};
+
+Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
+    let len = this.length();
+    let points = [];
+    let paths = [];
+    let plimit = Math.max(limit, wcount);
+    for(let pi = 0; pi < wcount; ++pi) {
+        paths.push({points:[], score:0.0, curvature:0.0, length: 0.0});
+    }
+    let closeFlag = 0;
+    let cr = 1.0;
+    let ln = 1.0;
+    for(let lat = 0; lat < 1.0; lat += 1.0/lcount) {
+        let line = this.line(lat * len);
+        let a = new P(line.x1, line.y1);
+        let b = new P(line.x2, line.y2);
+        let w = new P().mov(b).sub(a);
+        let npaths = [];
+        for(let wat = 1/(wcount+3); wat < (wcount+2)/(wcount+3); wat += 1/ (wcount+3)) {
+            let x = line.x1 + wat * w.x;
+            let y = line.y1 + wat * w.y;
+            let point = {x:x, y:y, angle: line.angle, lat: lat, wat: wat};
+            if(!closeFlag)
+                points.push(point);
+            for(let pi = 0; pi < paths.length; ++pi) {
+                let path = {score: paths[pi].score, points: JSON.parse(JSON.stringify(paths[pi].points)), last:paths[pi].last};
+                path.points.push(point);
+                if(path.points.length > 1) {
+                    path.score += alpha * pathLength(path.points.slice(path.points.length - 2, path.points.length));
+                }
+                if(path.points.length > 2) {
+                    let laster = path.last;
+                    path.last += pathCurvature(path.points.slice(path.points.length - 3, path.points.length));
+                    if(laster)
+                        path.score += beta * Math.sign(laster - path.last)* Math.pow(laster - path.last, 2.0)
+                }
+                npaths.push(path);
+            }
+        }
+        npaths.sort(function (a, b) { return Math.sign(a.score - b.score);});
+        paths = npaths.slice(0, plimit);
+        if(closeFlag == 3)
+            break;
+        if(lat + 1/lcount >= 1.0) {
+            cr = paths[0].curvature;
+            ln = paths[0].length;
+            lat = -1.0/lcount;
+            closeFlag += 1;
+            continue;
+        }
+    }
+    paths[0].points = paths[0].points.slice(lcount*2-1,lcount*3);
+    this.optimalPath = paths[0];
+    return paths[0];
 };
 
 Designer.prototype.at = function(len) {

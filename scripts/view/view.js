@@ -1,7 +1,7 @@
 function View (canvasId) {
     this.canvas = document.getElementById(canvasId);
     this.context = this.canvas.getContext("2d");
-    this.colors = ["#eb0000", "#800000", "#0000ff", "#eb8000", "#808000", "#FF00FF", "#008080", "#0080FF", "#eb0000", "#800000"];
+    this.colors = ["#eb0000", "#000000", "#0000ff", "#eb8000", "#808000", "#FF00FF", "#008080", "#0080FF", "#eb0000", "#800000"];
     this.translation = null;
     this.scale = null;
     this.arrowScale = 2.0;
@@ -39,7 +39,6 @@ View.prototype.resize = function (width, height, bbox) {
 View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
     this.drawTrack(model.track);
-
     for (let i = 0; i < model.race.players.length; ++i) {
         let player = model.race.players[i];
         let t = player.trajectory;
@@ -71,13 +70,13 @@ View.prototype.render = function(model) {
 
 
     let ctx = this.context;
-    ctx.strokeStyle = "#eb0000";
+    //ctx.strokeStyle = "#eb0000";
     ctx.lineWidth = 1;
 
     for(let i = 0; i < model.race.players.length; ++i) {
         if (!model.race.ais[i]) continue;
 
-            let tt = model.race.ais[i].traj;
+            let tt = undefined;//model.race.ais[i].traj;
             if(!tt) continue;
             let m = tt.moves[0].point;
             ctx.moveTo(this.scale.x * m.x + this.translation.x, this.scale.y * m.y + this.translation.y);
@@ -95,6 +94,16 @@ View.prototype.render = function(model) {
                     ctx.stroke();
                 }
     }
+    if(model.coord) {
+        ctx.font = '50px serif';
+        //ctx.fillText("[" + Math.round(model.coord.x)+ ", " + Math.round(model.coord.y) + "]", 200, 100);
+    }
+    let ai = model.race.ais[model.playerToMove];
+    if(ai) {
+        ctx.fillStyle = this.colors[model.playerToMove];
+        //ctx.strokeStyle = this.colors[1];
+        ctx.fillRect(5, 5, Math.min(1.0, ai.progress_current / ai.progress_counts[0]) * (this.canvas.clientWidth-10), 15);
+    }
     //ctx.stroke();
 };
 
@@ -105,6 +114,7 @@ View.prototype.drawCircle = function(c, R, color, op, filled) {
     ctx.globalAlpha = op;
     let cv = this.v(new P().mov(c));
     ctx.arc(cv.x, cv.y, R*this.scale.x, 0, 2*Math.PI);
+    //ctx.closePath();
     if(filled){
         ctx.fillStyle = color;
         ctx.fill();
@@ -205,8 +215,20 @@ View.prototype.drawTrack = function(track) {
             p,"#808080", false, false);*/
     }
     ctx.setLineDash(solid);
-    for(let i = 0; i < track.points.length; ++i) {
+    for(let i = 0; i < false && track.points.length; ++i) {
         this.drawCircle(track.points[i], 0.5, "#eb0000", 0.25, true);
+    }
+    if(false && track.design.optimalPath) {
+        let p = this.v(new P().mov(track.design.optimalPath.points[0]));
+        ctx.strokeStyle = "#eb0000";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        for (let i = 1; i < track.design.optimalPath.points.length; ++i) {
+            let p = this.v(new P().mov(track.design.optimalPath.points[i]));
+            ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
     }
     //ctx.putImageData(this.rasterizedTrack, 0, 0);
 };

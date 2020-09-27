@@ -13,7 +13,6 @@
 <script src="scripts/model/designer.js"></script>
 <script src="scripts/model/model.js"></script>
 <script src="scripts/model/player.js"></script>
-<script src="scripts/algorithm/ai.js"></script>
 <script src="scripts/model/race.js"></script>
 <script src="scripts/model/track.js"></script>
 <script src="scripts/model/physics.js"></script>
@@ -21,6 +20,8 @@
 <script src="scripts/view/view.js"></script>
 <script src="scripts/controller/controller.js"></script>
 <script src="scripts/algorithm/quadtree.js"></script>
+<script src="scripts/algorithm/tinyqueue.min.js"></script>
+<script src="scripts/algorithm/ai.js"></script>
 <script src="scripts/algorithm/utils.js"></script>
 <script src="scripts/algorithm/optimization.js"></script>
 <script src="scripts/algorithm/Intersection.min.js"></script>
@@ -32,8 +33,12 @@
     let view       = new View("canvas");
     let model      = new Model().updates(view);
     let controller = new Controller("body").manipulates(model, view);
-    let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 80 15 P 900 F 100";
-    model.startRace(track, 2);
+    //let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 80 15 P 900 F 100";
+    let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 S 10 C -70 80 C 90 70 z G 10 140 15 P 900 F 160";
+    const urlParams = new URLSearchParams(window.location.search);
+    let players = urlParams.get("players").split("");
+    console.log(JSON.stringify(players));
+    model.startRace(track, players);
 
     controller.resizePaper();
 

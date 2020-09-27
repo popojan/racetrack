@@ -1618,9 +1618,7 @@ Point2D.prototype.swap = function (that) {
     that.x = x;
     that.y = y;
 };
-Polynomial.TOLERANCE = 1e-16;
-Polynomial.ACCURACY = 12;
-let tmp2 = Math.LN10 * Polynomial.ACCURACY;
+//Polynomial.TOLERANCE = 1e-12;
 Polynomial.interpolate = function (xs, ys, n, offset, x) {
     if (xs.constructor !== Array || ys.constructor !== Array) throw new Error("Polynomial.interpolate: xs and ys must be arrays");
     if (isNaN(n) || isNaN(offset) || isNaN(x)) throw new Error("Polynomial.interpolate: n, offset, and x must be numbers");
@@ -1730,14 +1728,17 @@ Polynomial.prototype.divide_scalar = function (scalar) {
     for (let i = 0; i < this.coefs.length; i++) this.coefs[i] /= scalar;
 };
 Polynomial.prototype.simplify = function () {
+    let TOLERANCE = 1e-12;
     for (let i = this.coefs.length - 1; i >= 0; i--) {
-        if (Math.abs(this.coefs[i]) <= Polynomial.TOLERANCE) this.coefs.pop();
+        if (Math.abs(this.coefs[i]) <= TOLERANCE) this.coefs.pop();
         else break;
     }
 };
 Polynomial.prototype.bisection = bisection;
 
+//TODO speedup?, takes another 25% of AI time
 function bisection(coefs, min, max) {
+    let TOLERANCE = 1e-12;
     let last = coefs.length - 1;
     let minValue = 0;
     let maxValue = 0;
@@ -1746,16 +1747,17 @@ function bisection(coefs, min, max) {
         maxValue = maxValue * max + coefs[i];
     }
     let result;
-    if (Math.abs(minValue) <= Polynomial.TOLERANCE) result = min;
-    else if (Math.abs(maxValue) <= Polynomial.TOLERANCE) result = max;
+    if (Math.abs(minValue) <= TOLERANCE) result = min;
+    else if (Math.abs(maxValue) <= TOLERANCE) result = max;
     else if (minValue * maxValue <= 0) {
         let tmp1 = Math.log(max - min);
+        let tmp2 = Math.LN10 * 12; //ACCURACY;
         let iters = Math.ceil((tmp1 + tmp2) / Math.LN2);
         for (let i = 0; i < iters; i++) {
             result = 0.5 * (min + max);
             let value = 0;
             for (let j = last; j >= 0; j--) value = value * result + coefs[j];
-            if (Math.abs(value) <= Polynomial.TOLERANCE) {
+            if (Math.abs(value) <= TOLERANCE) {
                 break;
             }
             if (value * minValue < 0) {
@@ -1843,7 +1845,7 @@ Polynomial.prototype.romberg = function (min, max) {
     if (isNaN(min) || isNaN(max)) throw new Error("Polynomial.romberg: parameters must be numbers");
     let MAX = 20;
     let K = 3;
-    let TOLERANCE = 1e-6;
+    let TOLERANCE = 1e-12;
     let s = new Array(MAX + 1);
     let h = new Array(MAX + 1);
     let result = {
@@ -1876,6 +1878,7 @@ Polynomial.prototype.getDerivative = function () {
 Polynomial.prototype.getRoots = gr;
 
 function gr(roots) {
+    let TOLERANCE = 1e-12;
     //this.simplify();
     //for(i = 0; i < roots.length; ++i)
     //    roots[i] = -1;
@@ -1917,7 +1920,7 @@ function gr(roots) {
         offset = c2 / 3;
         discrim = b * b / 4 + a * a * a / 27;
         halfB = b / 2;
-        if (Math.abs(discrim) <= Polynomial.TOLERANCE) discrim = 0;
+        if (Math.abs(discrim) <= TOLERANCE) discrim = 0;
         if (discrim > 0) {
             let e = Math.sqrt(discrim);
             let tmp;
@@ -1964,7 +1967,7 @@ function gr(roots) {
         let resolveRoots = qpol.getRoots(rootsj3);
         let y = resolveRoots[0];
         discrim = c3 * c3 / 4 - c2 + y;
-        if (Math.abs(discrim) <= Polynomial.TOLERANCE) discrim = 0;
+        if (Math.abs(discrim) <= TOLERANCE) discrim = 0;
         let ii = 0;
         if (discrim > 0) {
             let e = Math.sqrt(discrim);
@@ -1972,8 +1975,8 @@ function gr(roots) {
             let t2 = (4 * c3 * c2 - 8 * c1 - c3 * c3 * c3) / (4 * e);
             let plus = t1 + t2;
             let minus = t1 - t2;
-            if (Math.abs(plus) <= Polynomial.TOLERANCE) plus = 0;
-            if (Math.abs(minus) <= Polynomial.TOLERANCE) minus = 0;
+            if (Math.abs(plus) <= TOLERANCE) plus = 0;
+            if (Math.abs(minus) <= TOLERANCE) minus = 0;
             let ii = 0;
             if (plus >= 0) {
                 let f = Math.sqrt(plus);
@@ -1987,16 +1990,16 @@ function gr(roots) {
             }
         } else if (discrim < 0) {} else {
             let t2 = y * y - 4 * c0;
-            if (t2 >= -Polynomial.TOLERANCE) {
+            if (t2 >= -TOLERANCE) {
                 if (t2 < 0) t2 = 0;
                 t2 = 2 * Math.sqrt(t2);
                 let t1 = 3 * c3 * c3 / 4 - 2 * c2;
-                if (t1 + t2 >= Polynomial.TOLERANCE) {
+                if (t1 + t2 >= TOLERANCE) {
                     let d = Math.sqrt(t1 + t2);
                     roots[ii++] = -c3 / 4 + d / 2;
                     roots[ii++] = -c3 / 4 - d / 2;
                 }
-                if (t1 - t2 >= Polynomial.TOLERANCE) {
+                if (t1 - t2 >= TOLERANCE) {
                     let d = Math.sqrt(t1 - t2);
                     roots[ii++] = -c3 / 4 + d / 2;
                     roots[ii++] = -c3 / 4 - d / 2;
@@ -2077,6 +2080,7 @@ Polynomial.prototype.getQuadraticRoots = function (roots) {
     return roots;
 };
 Polynomial.prototype.getCubicRoots = function (roots) {
+    let TOLERANCE = 1e-12;
     if (this.getDegree() == 3) {
         let c3 = this.coefs[3];
         let c2 = this.coefs[2] / c3;
@@ -2087,7 +2091,7 @@ Polynomial.prototype.getCubicRoots = function (roots) {
         let offset = c2 / 3;
         let discrim = b * b / 4 + a * a * a / 27;
         let halfB = b / 2;
-        if (Math.abs(discrim) <= Polynomial.TOLERANCE) discrim = 0;
+        if (Math.abs(discrim) <= TOLERANCE) discrim = 0;
         if (discrim > 0) {
             let e = Math.sqrt(discrim);
             let tmp;
@@ -2132,6 +2136,7 @@ let pol61 = new Polynomial(0,0,0,0,0,0);
 let pol41 = new Polynomial(0,0,0,0);
 let pol42 = new Polynomial(0,0,0,0);
 Polynomial.prototype.getQuarticRoots = function (roots) {
+    let TOLERANCE = 1e-12;
     if (this.getDegree() == 4) {
         let c4 = this.coefs[4];
         let c3 = this.coefs[3] / c4;
@@ -2148,15 +2153,15 @@ Polynomial.prototype.getQuarticRoots = function (roots) {
         let resolveRoots = qpol.getCubicRoots(roots1);
         let y = resolveRoots[0];
         let discrim = c3 * c3 / 4 - c2 + y;
-        if (Math.abs(discrim) <= Polynomial.TOLERANCE) discrim = 0;
+        if (Math.abs(discrim) <= TOLERANCE) discrim = 0;
         if (discrim > 0) {
             let e = Math.sqrt(discrim);
             let t1 = 3 * c3 * c3 / 4 - e * e - 2 * c2;
             let t2 = (4 * c3 * c2 - 8 * c1 - c3 * c3 * c3) / (4 * e);
             let plus = t1 + t2;
             let minus = t1 - t2;
-            if (Math.abs(plus) <= Polynomial.TOLERANCE) plus = 0;
-            if (Math.abs(minus) <= Polynomial.TOLERANCE) minus = 0;
+            if (Math.abs(plus) <= TOLERANCE) plus = 0;
+            if (Math.abs(minus) <= TOLERANCE) minus = 0;
             let ii = 0;
             if (plus >= 0) {
                 let f = Math.sqrt(plus);
@@ -2171,18 +2176,18 @@ Polynomial.prototype.getQuarticRoots = function (roots) {
             }
         } else if (discrim < 0) {} else {
             let t2 = y * y - 4 * c0;
-            if (t2 >= -Polynomial.TOLERANCE) {
+            if (t2 >= -TOLERANCE) {
                 if (t2 < 0) t2 = 0;
                 t2 = 2 * Math.sqrt(t2);
                 let t1 = 3 * c3 * c3 / 4 - 2 * c2;
                 let ii = 0;
-                if (t1 + t2 >= Polynomial.TOLERANCE) {
+                if (t1 + t2 >= TOLERANCE) {
                     let d = Math.sqrt(t1 + t2);
                     roots[ii + 0] = -c3 / 4 + d / 2;
                     roots[ii + 1] = -c3 / 4 - d / 2;
                     ii += 2;
                 }
-                if (t1 - t2 >= Polynomial.TOLERANCE) {
+                if (t1 - t2 >= TOLERANCE) {
                     let d = Math.sqrt(t1 - t2);
                     roots[ii + 0] = -c3 / 4 + d / 2;
                     roots[ii + 1] = -c3 / 4 - d / 2;
@@ -2740,6 +2745,12 @@ Path.prototype.tokenize = function (d) {
 }
 Path.prototype.intersectShape = intersectShape;
 
+function overlap(bb1, bb2) {
+    return (bb1.x < bb2.x + bb2.width && bb2.x < bb1.x + bb1.width
+        && bb1.y < bb2.y + bb2.height && bb2.y < bb1.y + bb1.height);
+}
+
+//TODO speedup, takes 25% of AI time
 function intersectShape(shape, ret) {
     let last = this.segments.length;
     let shape2 = shape;
@@ -2761,7 +2772,8 @@ function intersectShape(shape, ret) {
                 if (ip1.name < ip2.name) {
                     method = "intersect" + ip1.name + ip2.name;
                     if(method == "intersectBezier3Bezier3") {
-                        ib3b3(ip1.params[0], ip1.params[1], ip1.params[2], ip1.params[3], ip2.params[0], ip2.params[1], ip2.params[2], ip2.params[3], ret);
+                        if(!(ip1.bb && ip2.bb) || overlap(ip1.bb, ip2.bb))
+                            ib3b3(ip1.params[0], ip1.params[1], ip1.params[2], ip1.params[3], ip2.params[0], ip2.params[1], ip2.params[2], ip2.params[3], ret);
                     }
                     else if (method == "intersectBezier3Line") {
                         ib3l(ip1.params[0], ip1.params[1], ip1.params[2], ip1.params[3], ip2.params[0], ip2.params[1], ret); 
@@ -2899,7 +2911,7 @@ AbsoluteArcPath.prototype.getCenter = function () {
     let angle = this.angle * Math.PI / 180;
     let c = Math.cos(angle);
     let s = Math.sin(angle);
-    let TOLERANCE = 1e-6;
+    let TOLERANCE = 1e-12;
     let halfDiff = startPoint.subtract(endPoint).divide(2);
     let x1p = halfDiff.x * c + halfDiff.y * s;
     let y1p = halfDiff.x * -s + halfDiff.y * c;
@@ -2947,11 +2959,71 @@ AbsoluteCurveto3.prototype = new AbsolutePathSegment();
 AbsoluteCurveto3.prototype.constructor = AbsoluteCurveto3;
 AbsoluteCurveto3.superclass = AbsolutePathSegment.prototype;
 
+function findBB(P) {
+    let a = 3 * P[3].X - 9 * P[2].X + 9 * P[1].X - 3 * P[0].X;
+    let b = 6 * P[0].X - 12 * P[1].X + 6 * P[2].X;
+    let c = 3 * P[1].X - 3 * P[0].X;
+    //alert("a "+a+" "+b+" "+c);
+    let disc = b * b - 4 * a * c;
+    let xl = P[0].X;
+    let xh = P[0].X;
+    if (P[3].X < xl) xl = P[3].X;
+    if (P[3].X > xh) xh = P[3].X;
+    if (disc >= 0) {
+        let t1 = (-b + Math.sqrt(disc)) / (2 * a);
+        //alert("t1 " + t1);
+        if (t1 > 0 && t1 < 1) {
+            let x1 = evalBez(PX, t1);
+            if (x1 < xl) xl = x1;
+            if (x1 > xh) xh = x1;
+        }
+
+        let t2 = (-b - Math.sqrt(disc)) / (2 * a);
+        //alert("t2 " + t2);
+        if (t2 > 0 && t2 < 1) {
+            let x2 = evalBez(PX, t2);
+            if (x2 < xl) xl = x2;
+            if (x2 > xh) xh = x2;
+        }
+    }
+
+    a = 3 * P[3].Y - 9 * P[2].Y + 9 * P[1].Y - 3 * P[0].Y;
+    b = 6 * P[0].Y - 12 * P[1].Y + 6 * P[2].Y;
+    c = 3 * P[1].Y - 3 * P[0].Y;
+    disc = b * b - 4 * a * c;
+    let yl = P[0].Y;
+    let yh = P[0].Y;
+    if (P[3].Y < yl) yl = P[3].Y;
+    if (P[3].Y > yh) yh = P[3].Y;
+    if (disc >= 0) {
+        let t1 = (-b + Math.sqrt(disc)) / (2 * a);
+        //alert("t3 " + t1);
+
+        if (t1 > 0 && t1 < 1) {
+            let y1 = evalBez(PY, t1);
+            if (y1 < yl) yl = y1;
+            if (y1 > yh) yh = y1;
+        }
+
+        let t2 = (-b - Math.sqrt(disc)) / (2 * a);
+        //alert("t4 " + t2);
+
+        if (t2 > 0 && t2 < 1) {
+            let y2 = evalBez(PY, t2);
+            if (y2 < yl) yl = y2;
+            if (y2 > yh) yh = y2;
+        }
+    }
+    return {
+        x:xl, y:yl, width: Math.max(1,xh-xl), height:Math.max(1,yh-yl)
+    }
+}
 function AbsoluteCurveto3(params, owner, previous) {
     if (arguments.length > 0) {
         this.init("C", params, owner, previous);
     }
     this.ip = new IntersectionParams("Bezier3", [null, null, null, null]);
+    this.bb = findBB(params);
     this.getIntersectionParams();
 }
 AbsoluteCurveto3.prototype.getLastControlPoint = function () {
