@@ -107,11 +107,17 @@ Model.prototype.updateMove = function(p) {
 
 function waitForResult(ret) {
     let best = ret[0];
-    model.initializeMove(best);
-    console.log("Computer played");
-    ret[2].thinking = false;
-    model.finalizeMove(best);
-    console.log("finalized");
+    if(!best) {
+        ret[2].thinking = false;
+        console.log(ret[2].legal, ret[2].crash, ret[2].illegal);
+        //ret[2].randomMove(waitForResult);
+    } else {
+        model.initializeMove(best);
+        console.log("Computer played");
+        ret[2].thinking = false;
+        model.finalizeMove(best);
+        console.log("finalized");
+    }
 }
 
 function computerPlay(ai) {
@@ -123,11 +129,12 @@ function computerPlay(ai) {
 }
 
 
-Model.prototype.aiMove = function() {
+Model.prototype.aiMove = function(p) {
     if (this.race.ais[this.playerToMove] !== null) {
         console.log("computer Play " + this.playerToMove);
         computerPlay(this.race.ais[this.playerToMove]);
-    }
+    } else
+        this.adjust(p)
 }
 
 Model.prototype.finalizeMove = function(p) {
@@ -150,6 +157,5 @@ Model.prototype.finalizeMove = function(p) {
     } else {
         this.playerToMove += 1;
     }
-    if(!this.aiMove())
-        this.adjust(p);
+    this.aiMove(p);;
 }

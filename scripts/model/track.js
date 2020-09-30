@@ -37,9 +37,9 @@ Track.prototype.initAI = function(lcount, wcount, maxK, limit, alpha, beta) {
     this.points = this.design.cover(lcount, wcount);
     let bounds = this.getBoundingBox(0.0);
     console.log(JSON.stringify(bounds));
-    this.cover = new QuadTree(bounds, true, 128, 16);
+    this.cover = new QT.QuadTree(new QT.Box(bounds.x, bounds.y,bounds.width, bounds.height));
     for(let i = 0; i < this.points.length; ++i) {
-        this.cover.insert(this.points[i]);
+        this.cover.insert(new QT.Point(this.points[i].x, this.points[i].y, JSON.parse(JSON.stringify(this.points[i]))));
     }
     //this.design.optimal(32, 7, 64, 1.0, 1.0);
     //this.optim = this.design.optimalPath.points;;

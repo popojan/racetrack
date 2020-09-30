@@ -36,6 +36,49 @@ View.prototype.resize = function (width, height, bbox) {
     this.trackPath = undefined;
     this.rasterizedTrack = undefined;
 };
+
+View.prototype.drawMark = function(p) {
+    let pp = new P().mov(p);
+    this.v(pp);
+    this.context.fillStyle = "#000000";
+    this.context.beginPath();
+    this.context.arc(pp.x, pp.y, 2, 0, 2*Math.PI);
+    this.context.closePath();
+    this.context.fill();
+};
+
+View.prototype.hatchCircle = function(t, S, R, lastMove, alpha, beta, color1, color2) {
+    let B = new P().mov(t.t2b(t.getMove(lastMove - 2).point, lastMove - 3));
+    let A = new P().mov(t.t2b(t.getMove(lastMove - 1).point, lastMove - 2));
+    let r11 = new P().mov(B).sub(A).len();
+    let minR = new P().mov(S).sub(A).len() - R;
+    let maxR = new P().mov(S).sub(A).len() + R;
+    for(let k = 0; k <= 10; ++k) {
+        let r1 = (minR + k/10*(maxR-minR));
+        let pp = getCandidates(A, r1, S, R);
+        let e = new P().mov(pp[0]).sub(A);
+        let f = new P().mov(pp[1]).sub(A);
+        let o = new P().mov(A);
+        this.v(o);
+        if(r1 >= r11) {
+            this.context.strokeStyle = color2||color1;
+            this.context.globalAlpha = alpha;//beta + (1-beta) * alpha * (r1-r11)/(maxR-r11);
+        }
+        else {
+            this.context.strokeStyle = color1;
+            this.context.globalAlpha = alpha;//beta + (1-beta) * alpha * (r11 - r1) / (r11 - minR);
+        }
+        if(r1 > 0) {
+            this.context.beginPath();
+            this.context.arc(o.x, o.y, this.scale.x * r1, Math.atan2(e.y, e.x), Math.atan2(f.y, f.x));
+            this.context.stroke();
+        }
+    }
+    //console.log(JSON.stringify([pp, R, R2]));
+    //this.drawMark(A);
+    //this.drawMark(B);
+
+};
 View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
     this.drawTrack(model.track);
@@ -45,13 +88,19 @@ View.prototype.render = function(model) {
         let lastMove = t.moves.length;
         if(i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
             lastMove += 1;
-            if(i === model.playerToMove) {
+            if(i === model.playerToMove/* && model.race.ais[model.playerToMove] === null*/) {
                 let R = t.steeringRadius(lastMove - 1);
-                let S1 = t.t2b(player.trajectory.c(lastMove - 1), lastMove - 1);
-                let S2 = t.t2b(t.c());
-                this.drawCircle(S1, R, this.colors[i]);
-                R = t.steeringRadius();
-                this.drawCircle(S2, R, this.colors[i]);
+                let S1 = new P().mov(t.t2b(player.trajectory.c(lastMove - 1), lastMove - 1));
+                let S2 = new P().mov(t.t2b(t.c()));
+                this.drawCircle(S1, R, this.colors[i], 0.15, false);
+
+                //this.drawArrow(B, pp, this.colors[i], false, true);
+                let R2 = t.steeringRadius();
+                this.drawCircle(S2, R2, this.colors[i], 0.25, false);
+                this.hatchCircle(t, S1, R, lastMove, 0.25, 0.15, this.colors[i]);
+                this.hatchCircle(t, S2, R2, lastMove-1, 0.25, 0.15, this.colors[i]);
+                //this.drawMark(pp[0]);
+                //this.drawMark(pp[1]);
             }
         }
         if(lastMove === 1) {
@@ -125,6 +174,7 @@ View.prototype.drawCircle = function(c, R, color, op, filled) {
         ctx.stroke();
     }
     ctx.globalAlpha = 1.0;
+    ctx.closePath();
 };
 
 View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
@@ -215,9 +265,21 @@ View.prototype.drawTrack = function(track) {
             p,"#808080", false, false);*/
     }
     ctx.setLineDash(solid);
-    for(let i = 0; i < false && track.points.length; ++i) {
-        this.drawCircle(track.points[i], 0.5, "#eb0000", 0.25, true);
+    if(track.points) {
+        for (let i = 0; i < track.points.length; ++i) {
+            this.drawCircle(track.points[i], 0.5, "#eb0000", i / track.points.length, true);
+        }
+        let ps = track.cover.query(new QT.Circle(track.design.startpos(1).x, track.design.startpos(1).y, track.defaultSteeringRadius));
+        //console.log(JSON.stringify(ps));
+        ps.sort(function(a, b) {
+            return b.data.lat - a.data.lat;
+        });
+        let range = ps[0].data.lat - ps[ps.length - 1].data.lat;
+        for (let i = 0; i < ps.length; ++i) {
+            this.drawCircle(ps[i], 1.5, "#eb0000", 0.01 + (ps[i].data.lat - ps[ps.length - 1].data.lat)/range, true);
+        }
     }
+
     if(false && track.design.optimalPath) {
         let p = this.v(new P().mov(track.design.optimalPath.points[0]));
         ctx.strokeStyle = "#eb0000";

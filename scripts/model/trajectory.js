@@ -75,7 +75,10 @@ Trajectory.prototype.move = function(p, i, moves, fast) {
     this.evaluate(i, moves, fast);
     return this;
 };
-
+function pointsComparator(a, b) {
+    if(a === null || b == null) return 0;
+    return a.t - b.t;
+}
 Trajectory.prototype.evaluate = function(i, moves, fast) {
     moves = moves || this.moves;
     let result = moves[i].result;
@@ -84,10 +87,7 @@ Trajectory.prototype.evaluate = function(i, moves, fast) {
         let intersections = this.crash(i, kevinLine);
         let count = intersections.count;
         let points = intersections.points;
-        points.sort(function (a, b) {
-            if(a === null || b == null) return 0;
-            return a.t - b.t;
-        });
+        points.sort(pointsComparator);
         let parity = 0;
         for (let j = 0; j < i; ++j) {
             parity += this.getMove(j).result.intersections.count;
