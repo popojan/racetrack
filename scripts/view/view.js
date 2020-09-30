@@ -151,7 +151,7 @@ View.prototype.render = function(model) {
     if(ai) {
         ctx.fillStyle = this.colors[model.playerToMove];
         //ctx.strokeStyle = this.colors[1];
-        ctx.fillRect(5, 5, Math.min(1.0, ai.progress_current / ai.progress_counts[0]) * (this.canvas.clientWidth-10), 15);
+        ctx.fillRect(5, 5, Math.min(1.0, ai.progress_current / ai.progress_count) * (this.canvas.clientWidth-10), 15);
     }
     //ctx.stroke();
 };
@@ -265,7 +265,7 @@ View.prototype.drawTrack = function(track) {
             p,"#808080", false, false);*/
     }
     ctx.setLineDash(solid);
-    if(track.points) {
+    if(false && track.points) {
         for (let i = 0; i < track.points.length; ++i) {
             this.drawCircle(track.points[i], 0.5, "#eb0000", i / track.points.length, true);
         }
