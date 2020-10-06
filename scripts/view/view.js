@@ -1,3 +1,4 @@
+let DEBUG = false;
 function View (canvasId) {
     this.canvas = document.getElementById(canvasId);
     this.context = this.canvas.getContext("2d");
@@ -104,7 +105,7 @@ View.prototype.render = function(model) {
             }
         }
         if(lastMove === 1) {
-            let p = model.track.startPositions[i];
+            let p = model.track.startPositions[player.sid];
             this.drawArrow(new P().mov(p).sub(new P(p.vx, p.vy)), p, this.colors[i], true, false);
         }
         for (let j = 0; j < lastMove; ++j) {
@@ -115,6 +116,7 @@ View.prototype.render = function(model) {
                 this.drawCircle(S1, R, this.colors[i], j / lastMove);
             }
         }
+
     }
 
 
@@ -152,6 +154,27 @@ View.prototype.render = function(model) {
         ctx.fillStyle = this.colors[model.playerToMove];
         //ctx.strokeStyle = this.colors[1];
         ctx.fillRect(5, 5, Math.min(1.0, ai.progress_current / ai.progress_count) * (this.canvas.clientWidth-10), 15);
+        ctx.beginPath();
+
+        if(DEBUG || !true) {
+            let targets = model.race.players[model.playerToMove].trajectory.targets;
+            if(targets) {
+                for (let j = 0; j < targets.length; ++j) {
+                    let line = model.track.design.line(targets[j], -0.5);
+                    let A = this.v(new P(line.x1, line.y1));
+                    let B = this.v(new P(line.x2, line.y2));
+                    let tgt = model.race.players[model.playerToMove].trajectory.target;
+                    ctx.lineWidth = (j === tgt || j === tgt + 10) ? 4 : 1;
+                    ctx.strokeStyle = ctx.fillStyle;
+                    ctx.beginPath();
+                    ctx.moveTo(A.x, A.y);
+                    ctx.lineTo(B.x, B.y);
+                    //console.log(JSON.stringify([A, B]))
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+        }
     }
     //ctx.stroke();
 };
@@ -265,32 +288,31 @@ View.prototype.drawTrack = function(track) {
             p,"#808080", false, false);*/
     }
     ctx.setLineDash(solid);
-    if(false && track.points) {
-        for (let i = 0; i < track.points.length; ++i) {
-            this.drawCircle(track.points[i], 0.5, "#eb0000", i / track.points.length, true);
-        }
-        let ps = track.cover.query(new QT.Circle(track.design.startpos(1).x, track.design.startpos(1).y, track.defaultSteeringRadius));
-        //console.log(JSON.stringify(ps));
-        ps.sort(function(a, b) {
-            return b.data.lat - a.data.lat;
-        });
-        let range = ps[0].data.lat - ps[ps.length - 1].data.lat;
-        for (let i = 0; i < ps.length; ++i) {
-            this.drawCircle(ps[i], 1.5, "#eb0000", 0.01 + (ps[i].data.lat - ps[ps.length - 1].data.lat)/range, true);
+
+    if(DEBUG) {
+        let points = track.cover ? track.cover.getAllPoints() : [];
+        if(false && DEBUG && points.length > 0) {
+            for (let i = 0; i < points.length; ++i) {
+                this.drawCircle(points[i], 0.5, "#eb0000", points[i].data.lat, true);
+            }
         }
     }
-
-    if(false && track.design.optimalPath) {
-        let p = this.v(new P().mov(track.design.optimalPath.points[0]));
-        ctx.strokeStyle = "#eb0000";
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        for (let i = 1; i < track.design.optimalPath.points.length; ++i) {
-            let p = this.v(new P().mov(track.design.optimalPath.points[i]));
-            ctx.lineTo(p.x, p.y);
+    //console.log(track.design.optimalPath.length, track.design.optimalPath[0].points.length);
+    if(DEBUG && track.design.optimalPath) {
+        for(let j = 0; j < track.design.optimalPath.length; ++j) {
+            let p = this.v(new P().mov(track.design.optimalPath[j].points[0]));
+            ctx.strokeStyle = "#eb0000";
+            ctx.globalAlpha = 0.9;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            for (let i = 1; i < track.design.optimalPath[j].points.length; ++i) {
+                let p = this.v(new P().mov(track.design.optimalPath[j].points[i]));
+                ctx.lineTo(p.x, p.y);
+            }
+            ctx.closePath();
+            ctx.stroke();
         }
-        ctx.stroke();
     }
     //ctx.putImageData(this.rasterizedTrack, 0, 0);
 };

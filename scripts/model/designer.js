@@ -409,7 +409,7 @@ Designer.prototype.length = function() {
 }
 function pathLength(tup2) {
     let a = tup2[0];
-    let c = tup2[1];
+    let c = tup2[2];
     let ac = new P().mov(a).sub(c);
     return ac.len();
 }
@@ -426,20 +426,24 @@ Designer.prototype.cover = function(lcount, wcount, psize) {
     psize = psize||0.01;
     let len = this.length();
     let points = [];
-    for(let lat = 0; lat < 1.0; lat += 1.0/lcount) {
-        let line = this.line(lat * len);
+    let points2D = [];
+    for(let lat = 0, ix = 0; lat < 1.0; lat += 1.0/lcount, ++ix) {
+        points2D[ix] = [];
+        let line = this.line(lat*len);
         let a = new P(line.x1, line.y1);
         let b = new P(line.x2, line.y2);
         let w = new P().mov(b).sub(a);
-        for(let wat = 0.01; wat < 0.99; wat += 1.0/(wcount-1)) {
+        for(let wat = 0.01, iy = 0;wat < 1.00; wat += 0.98/(wcount-1), ++iy) {
+
             let x = line.x1 + wat * w.x;
             let y = line.y1 + wat * w.y;
             let point = {x: x, y: y,
-                angle: line.angle, lat: lat, wat: wat};
+                angle: line.angle, lat: lat, wat: wat, ix: ix, iy:iy};
+            points2D[ix][iy] = point;
             points.push(point);
         }
     }
-    return points;
+    return [points, points2D];
 };
 
 Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
@@ -453,23 +457,32 @@ Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
     let closeFlag = 0;
     let cr = 1.0;
     let ln = 1.0;
+    let lines = [];
     for(let lat = 0; lat < 1.0; lat += 1.0/lcount) {
-        let line = this.line(lat * len);
+        let elat = lat;
+        let line = this.line(elat * len);
+        lines.push({line:line,lat:lat});
+    }
+    for(let i = 0; i < lines.length; ++i) {
+        let line = lines[i].line;
+        let lat = lines[i].lat;
         let a = new P(line.x1, line.y1);
         let b = new P(line.x2, line.y2);
         let w = new P().mov(b).sub(a);
         let npaths = [];
-        for(let wat = 1/(wcount+3); wat < (wcount+2)/(wcount+3); wat += 1/ (wcount+3)) {
-            let x = line.x1 + wat * w.x;
+        let delta = 0.98 / (wcount+1);
+        for(let wat = 0.01; wat < 1.0; wat += delta) {
+            let x =  line.x1 + wat * w.x;
             let y = line.y1 + wat * w.y;
             let point = {x:x, y:y, angle: line.angle, lat: lat, wat: wat};
             if(!closeFlag)
                 points.push(point);
+            let minScore = Infinity;
             for(let pi = 0; pi < paths.length; ++pi) {
                 let path = {score: paths[pi].score, points: JSON.parse(JSON.stringify(paths[pi].points)), last:paths[pi].last};
                 path.points.push(point);
-                if(path.points.length > 1) {
-                    path.score += alpha * pathLength(path.points.slice(path.points.length - 2, path.points.length));
+                if(path.points.length > 2) {
+                    path.score += alpha*pathLength(path.points.slice(path.points.length - 3, path.points.length)) / delta;
                 }
                 if(path.points.length > 2) {
                     let laster = path.last;
@@ -477,27 +490,46 @@ Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
                     if(laster)
                         path.score += beta * Math.sign(laster - path.last)* Math.pow(laster - path.last, 2.0)
                 }
+                minScore = Math.min(minScore, path.score);
+                point.lat = minScore;
                 npaths.push(path);
             }
+            point.lat = minScore;
         }
         npaths.sort(function (a, b) { return Math.sign(a.score - b.score);});
         paths = npaths.slice(0, plimit);
         if(closeFlag == 3)
             break;
-        if(lat + 1/lcount >= 1.0) {
+        if(i === lines.length - 1) {
             cr = paths[0].curvature;
             ln = paths[0].length;
+            i = -1;
             lat = -1.0/lcount;
             closeFlag += 1;
             continue;
         }
     }
+    let max = -Infinity;
+    let min = Infinity;
+    for(let i = lcount*2-1; i < lcount*3; ++i) {
+        max = Math.max(max, points[i].lat);
+        min = Math.min(min, points[i].lat);
+    }
+    for(let i = lcount*2-1; i < lcount*3; ++i)
+        points[i].lat = (points[i].lat-min)/(max-min);
     paths[0].points = paths[0].points.slice(lcount*2-1,lcount*3);
-    this.optimalPath = paths[0];
-    return paths[0];
+    let ps =[];
+    for(let i = 0; i < paths[0].points.length; i+=2) {
+        ps.push(paths[0].points[i]);
+    }
+    paths[0].points = ps;
+    this.optimalPath = paths.slice(0,1);
+    console.log(JSON.stringify(this.optimalPath));
+    return points;
 };
 
 Designer.prototype.at = function(len) {
+    len = (this.checks[this.checks.length - 1] + len) % this.length();
     for(let i = 0; i < this.segments.length; i++) {
         let seg = this.segments[i];
         if(len > seg.len) {
@@ -531,13 +563,20 @@ Designer.prototype.check = function(t) {
     this.checks.push(t);
 };
 
-Designer.prototype.line = function(at) {
+Designer.prototype.line = function(at, shorten) {
+    shorten = shorten || 1.0;
     let len = this.length();
-    let p = this.at(at % len);
+    let p = this.at(at);
     let b = (p.a+90)/180*Math.PI;
     let side = this.w;
-    let s = {x1: p.x+side*Math.cos(b), y1: p.y + side*Math.sin(b), angle:b,
-        x2: p.x-side*Math.cos(b), y2: p.y - side*Math.sin(b)
+    //console.log(JSON.stringify(p));
+    let sign = (Math.sign(p.seg.phi)||1);
+    let subx = -sign*side*Math.cos(b);
+    let suby = -sign*side*Math.sin(b);
+    let addx = shorten*subx;
+    let addy = shorten*suby;
+    let s = {x1: p.x + addx, y1: p.y + addy, angle:b,
+        x2: p.x-subx, y2: p.y - suby
     };
     return s;
 };
@@ -546,7 +585,7 @@ Designer.prototype.finishLine = function(i) {
     if(i === undefined) 
         i = this.check.length - 1;
     let len = this.length();
-    let at = this.checks[i];
+    let at = this.checks[i] - this.checks[this.checks.length -1];
     if(at < len)
         at += len;
     let dic = this.line(at);
@@ -556,12 +595,15 @@ Designer.prototype.finishLine = function(i) {
     return dic;
 };
 
-Designer.prototype.startpos = function(sid) {
+Designer.prototype.startposAt = function(sid) {
     let len = this.length();
-    let at = (this.gridat-Math.floor(sid/2)*this.R*3 - (sid%2)*this.R);
+    let at = (this.gridat - Math.floor(sid/2)*this.R*3 - (sid%2)*this.R);
     if(at < len)
         at += len;
-    let p = this.at(at % len);
+    return at % len;
+};
+Designer.prototype.startpos = function(sid) {
+    let p = this.at(this.startposAt(sid));
     let a = p.a/180*Math.PI;
     let b = (p.a+90)/180*Math.PI;
     let side = 3*(0.5-sid%2)*Math.min(this.R/2, this.w/3);

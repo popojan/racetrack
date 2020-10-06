@@ -25,10 +25,10 @@ Model.prototype.startRace = function (trackDesign, players) {
         let who = players[i] === undefined ? "0" : players[i];
         if(who === "0")
             continue;
-        let player = new Player("player" + i, steeringRadius, collisionRadius);
+        let player = new Player("player" + i, steeringRadius, collisionRadius, i);
         let trajectory = new Trajectory(this.track)
         player.trajectory = trajectory.move(this.track.startPositions[i], 1);;
-        this.race.addPlayer(player, (who === "h" || who === "H") ? null: new AI(this.track, player));
+        this.race.addPlayer(player, (who === "h" || who === "H") ? null: new AI(this.track, player, i));
     }
     this.race.start();
     if(this.race.ais[0]) {
@@ -109,14 +109,14 @@ function waitForResult(ret) {
     let best = ret[0];
     if(!best) {
         ret[2].thinking = false;
-        console.log(ret[2].legal, ret[2].crash, ret[2].illegal);
+        //console.log(ret[2].legal, ret[2].crash, ret[2].illegal);
         //ret[2].randomMove(waitForResult);
     } else {
         model.initializeMove(best);
-        console.log("Computer played");
+        //console.log("Computer played");
         ret[2].thinking = false;
         model.finalizeMove(best);
-        console.log("finalized");
+        //console.log("finalized");
     }
 }
 
@@ -131,14 +131,14 @@ function computerPlay(ai) {
 
 Model.prototype.aiMove = function(p) {
     if (this.race.ais[this.playerToMove] !== null) {
-        console.log("computer Play " + this.playerToMove);
+        //console.log("computer Play " + this.playerToMove);
         computerPlay(this.race.ais[this.playerToMove]);
     } else
         this.adjust(p)
 }
 
 Model.prototype.finalizeMove = function(p) {
-    console.log("finalize move");
+    //console.log("finalize move");
     this.adjust(p);
     this.initialPosition.x = null;
     let n = this.race.players.length;

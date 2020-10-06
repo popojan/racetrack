@@ -254,6 +254,31 @@ Trajectory.prototype.asKevinLine = function(i) {
     return this.kevinLine;
 };
 
+Trajectory.prototype.scoreAt = function(i, kevinLine, at, id, shorten ) {
+    let ret = [];
+    kevinLine = kevinLine || this.asKevinLine(i);
+    let finish = this.track.design.line(at, shorten);
+    let inter = new Intersection("I", 20);
+    inter.t = 2;
+    let sPath = "M" + finish.x1 + "," + finish.y1 + "L" + finish.x2 + "," + finish.y2;
+    let collisionPath = new Path();
+    collisionPath.parseData(sPath);
+    let intersections = intersectShapes(collisionPath, kevinLine, inter);
+    for (let k = 0; k < intersections.count; ++k) {
+        let p = intersections.points[k];
+        let b = (finish.x2 - finish.x1);
+        let a = -(finish.y2 - finish.y1);
+        let c = - (a * finish.x1 + b * finish.y1)
+        let h = kevinLine.segments[1].handles[1].point;
+        let dir = a * h.x + b * h.y + c;
+        ret.push({"point":p, "id": id, "direction": Math.sign(dir)});
+    }
+    ret.sort(function(a, b) { return a.point.t - b.point.t; })
+    if(ret.length > 0)
+        ;//console.log(JSON.stringify(ret));
+    return ret;
+}
+
 Trajectory.prototype.finished = function(i, kevinLine) {
     let ret = [];
     kevinLine = kevinLine || this.asKevinLine(i);

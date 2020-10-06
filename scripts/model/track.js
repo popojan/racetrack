@@ -34,17 +34,30 @@ Track.prototype.createFrom = function(designString) {
 };
 
 Track.prototype.initAI = function(lcount, wcount, maxK, limit, alpha, beta) {
-    this.points = this.design.cover(lcount, wcount);
+    //this.points = this.design.optimal(lcount, wcount, 4, 1.0, 1.0, this.cover);
+
+    let ret =  this.design.cover(lcount, wcount);
+    this.points = ret[0];
+    this.points2D = ret[1];
+    //this.points = this.design.optimal(92, 7, 64, 1.0, 100000000000.0, this.cover);
+    //this.points2 = this.design.cover(2*lcount, 2*wcount);
+
     let bounds = this.getBoundingBox(0.0);
-    console.log(JSON.stringify(bounds));
+    //console.log(JSON.stringify(bounds));
     this.cover = new QT.QuadTree(new QT.Box(bounds.x, bounds.y,bounds.width, bounds.height));
     for(let i = 0; i < this.points.length; ++i) {
         this.cover.insert(new QT.Point(this.points[i].x, this.points[i].y, JSON.parse(JSON.stringify(this.points[i]))));
     }
-    //this.design.optimal(32, 7, 64, 1.0, 1.0);
-    //this.optim = this.design.optimalPath.points;;
-/*
-    let ps = this.design.optimalPath.points;
+    /*
+    this.cover2 = new QT.QuadTree(new QT.Box(bounds.x, bounds.y,bounds.width, bounds.height));
+    for(let i = 0; i < this.points2.length; ++i) {
+        this.cover2.insert(new QT.Point(this.points2[i].x, this.points2[i].y, JSON.parse(JSON.stringify(this.points2[i]))));
+    }
+*/
+
+       //this.optim = this.design.optimalPath.points;;
+
+    /*let ps = this.design.optimalPath.points;
     let qs = [];
     for(let i = 1; i < ps.length; ++i) {
         let len = new P().mov(ps[i]).sub(ps[i-1]);
