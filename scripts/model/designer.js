@@ -438,7 +438,7 @@ Designer.prototype.cover = function(lcount, wcount, psize) {
             let x = line.x1 + wat * w.x;
             let y = line.y1 + wat * w.y;
             let point = {x: x, y: y,
-                angle: line.angle, lat: lat, wat: wat, ix: ix, iy:iy};
+                angle: line.angle, lat: lat, wat: wat, ix: ix, iy:iy, seg: line.seg};
             points2D[ix][iy] = point;
             points.push(point);
         }
@@ -452,7 +452,7 @@ Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
     let paths = [];
     let plimit = Math.max(limit, wcount);
     for(let pi = 0; pi < wcount; ++pi) {
-        paths.push({points:[], score:0.0, curvature:0.0, length: 0.0});
+        paths.push({pints:[], score:0.0, curvature:0.0, length: 0.0});
     }
     let closeFlag = 0;
     let cr = 1.0;
@@ -563,10 +563,9 @@ Designer.prototype.check = function(t) {
     this.checks.push(t);
 };
 
-Designer.prototype.line = function(at, shorten) {
-    shorten = shorten || 1.0;
-    let len = this.length();
+Designer.prototype.line = function(at, shorten, shorten2) {
     let p = this.at(at);
+    shorten = p.seg.r ? (shorten || 1.0) : (shorten2 || 1.0);
     let b = (p.a+90)/180*Math.PI;
     let side = this.w;
     //console.log(JSON.stringify(p));
@@ -576,7 +575,7 @@ Designer.prototype.line = function(at, shorten) {
     let addx = shorten*subx;
     let addy = shorten*suby;
     let s = {x1: p.x + addx, y1: p.y + addy, angle:b,
-        x2: p.x-subx, y2: p.y - suby
+        x2: p.x-subx, y2: p.y - suby, seg: p.seg
     };
     return s;
 };

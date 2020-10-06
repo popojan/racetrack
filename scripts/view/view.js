@@ -156,22 +156,31 @@ View.prototype.render = function(model) {
         ctx.fillRect(5, 5, Math.min(1.0, ai.progress_current / ai.progress_count) * (this.canvas.clientWidth-10), 15);
         ctx.beginPath();
 
-        if(DEBUG || !true) {
-            let targets = model.race.players[model.playerToMove].trajectory.targets;
+        if(DEBUG || true) {
+            let targets = model.race.players[model.playerToMove].trajectory.target;
+            let len = model.track.design.length();
+            //console.log(JSON.stringify(targets));
             if(targets) {
-                for (let j = 0; j < targets.length; ++j) {
-                    let line = model.track.design.line(targets[j], -0.5);
+                for (let j = 0; j <= targets.length + 1; ++j) {
+                    let add = 0;
+                    if(j === targets.length) { add = 80/len;}
+                    if(j === targets.length + 1) {add = 40/len;}
+                    let  at =(targets[Math.min(targets.length-1,j)]+add)*len;
+
+                    let line = model.track.design.line(at, -0.25);
                     let A = this.v(new P(line.x1, line.y1));
                     let B = this.v(new P(line.x2, line.y2));
-                    let tgt = model.race.players[model.playerToMove].trajectory.target;
-                    ctx.lineWidth = (j === tgt || j === tgt + 10) ? 4 : 1;
+                    let tgt = model.race.players[model.playerToMove].trajectory.target.length - 1;
+                    ctx.lineWidth = (add > 0) ? 4 : 1;
                     ctx.strokeStyle = ctx.fillStyle;
+                    ctx.globalAlpha = 0.25;
                     ctx.beginPath();
                     ctx.moveTo(A.x, A.y);
                     ctx.lineTo(B.x, B.y);
                     //console.log(JSON.stringify([A, B]))
                     ctx.closePath();
                     ctx.stroke();
+                    ctx.globalAlpha = 1.0;
                 }
             }
         }
@@ -258,10 +267,12 @@ View.prototype.drawTrack = function(track) {
     let solid = ctx.getLineDash();
     ctx.setLineDash([3,2]);
     for(let i = 0; i < track.design.checks.length; ++i) {
+        ctx.beginPath();
         let check = track.design.finishLine(i);
         ctx.moveTo(check.x1 * this.scale.x + this.translation.x, check.y1 * this.scale.y + this.translation.y);
         ctx.lineTo(check.x2 * this.scale.x + this.translation.x, check.y2 * this.scale.y + this.translation.y);
         ctx.strokeStyle = "#808080";
+        ctx.closePath();
         ctx.stroke();
     }
     let _this = this;
@@ -282,6 +293,7 @@ View.prototype.drawTrack = function(track) {
         ctx.lineTo(b.x, b.y);
         ctx.lineTo(c.x, c.y);
         ctx.lineTo(d.x, d.y);
+        ctx.closePath();
         ctx.stroke();
         /*this.drawArrow(
             new P().mov(p).sub(new P(p.vx, p.vy)),
