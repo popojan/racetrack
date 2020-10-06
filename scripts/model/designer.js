@@ -540,13 +540,13 @@ Designer.prototype.at = function(len) {
                 return {
                     x:seg.sx + part*(seg.ex-seg.sx),
                     y:seg.sy + part*(seg.ey-seg.sy),
-                    a:seg.a, seg:seg};
+                    a:seg.a, seg:seg, part:part};
             } else { //curve
                 let part = len/seg.len;
                 let s = this._curve(seg.a, seg.r, seg.phi*part).trim().split(" ");
                 let dx = parseFloat(s[6]);
                 let dy = parseFloat(s[7]);
-                return {x:seg.sx+dx, y:seg.sy+dy, a:seg.a+seg.phi*part, seg:seg};
+                return {x:seg.sx+dx, y:seg.sy+dy, a:seg.a+seg.phi*part, seg:seg, part: part};
             }
             break;
         }
@@ -563,9 +563,12 @@ Designer.prototype.check = function(t) {
     this.checks.push(t);
 };
 
-Designer.prototype.line = function(at, shorten, shorten2) {
+Designer.prototype.line = function(at, shorten) {
     let p = this.at(at);
-    shorten = p.seg.r ? (shorten || 1.0) : (shorten2 || 1.0);
+    if(p.seg.r)
+        shorten = shorten ? shorten + (1-shorten) * (-2.0 * Math.pow(1-Math.abs(p.part - 0.55)/0.55,0.25) + 1): 1.0;
+    else
+        shorten = 1.0;//shorten ? shorten + (1-shorten) * (-2.0 * Math.pow(Math.abs(p.part - 0.5)/0.5,0.5) + 1): 1.0;
     let b = (p.a+90)/180*Math.PI;
     let side = this.w;
     //console.log(JSON.stringify(p));

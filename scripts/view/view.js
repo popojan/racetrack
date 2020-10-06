@@ -80,45 +80,47 @@ View.prototype.hatchCircle = function(t, S, R, lastMove, alpha, beta, color1, co
     //this.drawMark(B);
 
 };
+View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, circlesFrom, circlesTo) {
+    let lastMove = t.moves.length;
+    let player = model.race.players[i];
+    if(i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
+        lastMove += 1;
+        if(i === model.playerToMove/* && model.race.ais[model.playerToMove] === null*/) {
+            let R = t.steeringRadius(lastMove - 1);
+            let S1 = new P().mov(t.t2b(player.trajectory.c(lastMove - 1), lastMove - 1));
+            let S2 = new P().mov(t.t2b(t.c()));
+            this.drawCircle(S1, R, this.colors[i], 0.15, false);
+
+            //this.drawArrow(B, pp, this.colors[i], false, true);
+            let R2 = t.steeringRadius();
+            this.drawCircle(S2, R2, this.colors[i], 0.25, false);
+            this.hatchCircle(t, S1, R, lastMove, 0.25, 0.15, this.colors[i]);
+            this.hatchCircle(t, S2, R2, lastMove-1, 0.25, 0.15, this.colors[i]);
+            //this.drawMark(pp[0]);
+            //this.drawMark(pp[1]);
+        }
+    }
+    if(lastMove === 1) {
+        let p = model.track.startPositions[player.sid];
+        this.drawArrow(new P().mov(p).sub(new P(p.vx, p.vy)), p, this.colors[i], true, false);
+    }
+    for (let j = 0; j < lastMove; ++j) {
+        this.drawMove(t, j, (j === lastMove-1 || (j >= moveFrom && j < moveTo)), this.colors[i], 1.0)
+        if(false) { //j >= (circlesFrom||Infinity) && j< (circlesFrom||-Infinity) ) { // DEBUG
+            let R = t.steeringRadius(j);
+            let S1 = t.t2b(player.trajectory.c(j), j);
+            this.drawCircle(S1, R, this.colors[i], j / lastMove);
+        }
+    }
+};
+
 View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
     this.drawTrack(model.track);
     for (let i = 0; i < model.race.players.length; ++i) {
         let player = model.race.players[i];
-        let t = player.trajectory;
-        let lastMove = t.moves.length;
-        if(i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
-            lastMove += 1;
-            if(i === model.playerToMove/* && model.race.ais[model.playerToMove] === null*/) {
-                let R = t.steeringRadius(lastMove - 1);
-                let S1 = new P().mov(t.t2b(player.trajectory.c(lastMove - 1), lastMove - 1));
-                let S2 = new P().mov(t.t2b(t.c()));
-                this.drawCircle(S1, R, this.colors[i], 0.15, false);
-
-                //this.drawArrow(B, pp, this.colors[i], false, true);
-                let R2 = t.steeringRadius();
-                this.drawCircle(S2, R2, this.colors[i], 0.25, false);
-                this.hatchCircle(t, S1, R, lastMove, 0.25, 0.15, this.colors[i]);
-                this.hatchCircle(t, S2, R2, lastMove-1, 0.25, 0.15, this.colors[i]);
-                //this.drawMark(pp[0]);
-                //this.drawMark(pp[1]);
-            }
-        }
-        if(lastMove === 1) {
-            let p = model.track.startPositions[player.sid];
-            this.drawArrow(new P().mov(p).sub(new P(p.vx, p.vy)), p, this.colors[i], true, false);
-        }
-        for (let j = 0; j < lastMove; ++j) {
-            this.drawMove(t, j, j === lastMove-1, this.colors[i], 1.0)
-            if(i === -1 ) { // DEBUG
-                let R = t.steeringRadius(j);
-                let S1 = t.t2b(player.trajectory.c(j), j);
-                this.drawCircle(S1, R, this.colors[i], j / lastMove);
-            }
-        }
-
+        this.drawTrajectory(player.trajectory, i);
     }
-
 
     let ctx = this.context;
     //ctx.strokeStyle = "#eb0000";
@@ -157,17 +159,22 @@ View.prototype.render = function(model) {
         ctx.beginPath();
 
         if(DEBUG || true) {
-            let targets = model.race.players[model.playerToMove].trajectory.target;
+            let traj = model.race.players[model.playerToMove].trajectory;
+            let tt = new Trajectory(model.track);
+            tt.moves = ai.states.peek().moves;
+            this.drawTrajectory(tt, Infinity, traj.moves.length, tt.moves.length);
+            let targets = ai.states.peek().lats;//traj.target;
             let len = model.track.design.length();
             //console.log(JSON.stringify(targets));
             if(targets) {
-                for (let j = 0; j <= targets.length + 1; ++j) {
+                for (let j = 0; j < targets.length + 1; ++j) {
                     let add = 0;
-                    if(j === targets.length) { add = 80/len;}
-                    if(j === targets.length + 1) {add = 40/len;}
-                    let  at =(targets[Math.min(targets.length-1,j)]+add)*len;
+                    //if(j === targets.length) { add = 80/len;}
+                    if(j === traj.moves.length-1) {add = ai.ahead;}
+                    if(add === 0) continue;
+                    let  at =(targets[Math.min(targets.length-1,j)])*len+add;
 
-                    let line = model.track.design.line(at, -0.25);
+                    let line = model.track.design.line(at, ai.shorten);
                     let A = this.v(new P(line.x1, line.y1));
                     let B = this.v(new P(line.x2, line.y2));
                     let tgt = model.race.players[model.playerToMove].trajectory.target.length - 1;
@@ -209,7 +216,7 @@ View.prototype.drawCircle = function(c, R, color, op, filled) {
     ctx.closePath();
 };
 
-View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
+View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color) {
     let t0 = trajectory.animationMoveFraction;
     let ctx = this.context;
     let ret = trajectory.bez(moveNumber);
@@ -218,7 +225,7 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
     ctx.lineWidth = 1;
     ctx.globalAlpha = 0.2;
 
-    if(drawArrow/* || trajectory.animationMove ===  moveNumber*/) {
+    if(drawMove/* || trajectory.animationMove ===  moveNumber*/) {
         ctx.beginPath();
         this.v(this.eax.mov(ret[0]));
         ctx.moveTo(this.eax.x, this.eax.y);
@@ -243,7 +250,7 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawArrow, color) {
             this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0, this.tmp_p1);
         this.drawArrow(this.tmp_p0, this.tmp_p1, color, true, false);
     }
-    if(drawArrow && moveNumber > 0) {
+    if(drawMove && moveNumber > 0) {
         getTangentPoint(1.0,
             this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0, this.tmp_p1);
         this.drawArrow(this.tmp_p0, this.tmp_p1, color, false, false);
@@ -293,7 +300,7 @@ View.prototype.drawTrack = function(track) {
         ctx.lineTo(b.x, b.y);
         ctx.lineTo(c.x, c.y);
         ctx.lineTo(d.x, d.y);
-        ctx.closePath();
+
         ctx.stroke();
         /*this.drawArrow(
             new P().mov(p).sub(new P(p.vx, p.vy)),

@@ -11,6 +11,7 @@ function AI (track, player, sid) {
     this.sid = sid;
     this.ahead = 200;
     this.ahead2 = 40;
+    this.shorten = 0.1;
 }
 
 AI.prototype.getProgress = function(p) {
@@ -53,9 +54,10 @@ function getCandidates(s1, r1, s2, r2) {
         new P().mov(s1).add(u).sub(v)];
 };
 
-function _getSortedCandidates(cover, cb, R, closeTo) {
+function _getSortedCandidates(cover, cb, R, closeTo, mult) {
     //closeTo = undefined;
-    let ps = cover.query(new QT.Circle(cb.x, cb.y, closeTo ? R : R));
+    cb = closeTo||cb;
+    let ps = cover.query(new QT.Circle(cb.x, cb.y, closeTo ? R * mult : R));
     ps.sort(function (a, b) {
         return b.data.lat - a.data.lat;
     });
@@ -70,11 +72,11 @@ function _getSortedCandidates(cover, cb, R, closeTo) {
     return ps;//closeTo ? ps.slice(0, 4) : ps;
 }
 
-function getSortedCandidates(traj, cover, i) {
+function getSortedCandidates(traj, cover, i, pp, mult) {
     let track = traj.track;
     let cb = traj.t2b(traj.c(i), i);
     let R = traj.steeringRadius(i);
-    let ps = _getSortedCandidates(cover, cb, R);
+    let ps = _getSortedCandidates(cover, cb, R, pp, mult);
     //if(ps.length <= 0)
     //    return [];
     //return _getSortedCandidates(cover, ps[0], R);
@@ -88,15 +90,17 @@ function batchAI(ai, traj, states, N, finalCallback) {
         let end = false;
         let len = traj.track.design.length();
 
-
         let vv = 0.0;
 
         for(let step = 0; step < N && states.length > 0 && !end; ++step) {
             state = states.pop();
-            let target = state.lats[state.lats.length - 1 - state.depth0 + state.depth]*len + ai.ahead;//traj.targets[traj.target]; //state.lats.length - 1 - state.depth0 + state.depth
-            if(state.finished === 1) {
-                target += ai.ahead2; //traj.targets[(traj.target+10) %  traj.targets.length];
-            }
+            let ii = Math.min(traj.moves.length, state.lats.length-1);
+            let target = state.lats[ii]*len + ai.ahead;//traj.targets[traj.target]; //state.lats.length - 1 - state.depth0 + state.depth
+            let target0 = state.lats[ii - 1]*len;//traj.targets[traj.target]; //state.lats.length - 1 - state.depth0 + state.depth
+
+            //if(state.finished === 1) {
+            //    target += ai.ahead2; //traj.targets[(traj.target+10) %  traj.targets.length];
+            //}
             //console.log(JSON.stringify(state.lats), target);
             target = target % len;
             if (state.finished > 1) {
@@ -104,7 +108,7 @@ function batchAI(ai, traj, states, N, finalCallback) {
                 let tt = new Trajectory(traj.track);
                 tt.moves = state.moves;
                 let finalScore = tt.score();
-                if(finalScore < Infinity)
+                //if(finalScore < Infinity)
                     console.log("FINAL SCORE = ", finalScore);
                 ai.result.best = state;
                 //ai.ahead = state.ahead;
@@ -114,18 +118,36 @@ function batchAI(ai, traj, states, N, finalCallback) {
                 traj.target = JSON.parse(JSON.stringify(state.lats));//Math.round(traj.target + state.v/(len/ai.K)) % traj.targets.length;
                 break;
             } else {
-                let pp = undefined;//state.depth0 - state.depth <  (ai.result.bestd - traj.moves.length)-2 ? ai.result.best[state.depth0-state.depth] : undefined;
+                //if(state.far||false)
+                //    continue;
+                let pp = undefined;
+                let ph = undefined;
+                let mult = undefined;
+
                 let tt = new Trajectory(traj.track);
                 tt.moves = state.moves;
-                let candidates = getSortedCandidates(tt, traj.track.cover, state.n, pp);
+                let candidates = getSortedCandidates(tt, traj.track.cover, state.n, pp, mult);
                 //let added = 0;
                 //let run = 0;
-                for (let j = 0; j < candidates.length; j+= state.depth0 - state.depth + 1) {
+                let steps = state.depth0-state.depth;
+                for (let j = 0; j < candidates.length; j+= 1/*state.depth0 - state.depth + 1*/) {
+                    pp = undefined;
+                    if(ai.result.best && ai.result.best.bmoves && steps < ai.result.best.bmoves.length) {
+                        let maxSteps = ai.result.best.bmoves.length;
+                        let close = steps < 2;
+                        //console.log(close, traj.moves.length, steps, state.val);
+                        //mult = close ? 0.075 : 1;
+                        pp = undefined;// steps < maxSteps - 4 ? ai.result.best.bmoves[state.depth0-state.depth]: undefined;
+                        ph = ai.result.best.bmoves[state.depth0-state.depth];
+                        //pp = close ? ph : undefined;
+                        //pp =  steps < maxSteps - 4 ? ai.result.best.bmoves[state.depth0-state.depth]: undefined;
+                    }
+                    candidates = getSortedCandidates(tt, traj.track.cover, state.n, pp, mult);
                     let dstate = JSON.parse(JSON.stringify(state));
                     --dstate.depth;
                     ++dstate.n;
                     let Bb = candidates[j%candidates.length].data;
-                    dstate.lats[dstate.moves.length] = Bb.lat;
+
                     //dstate.ahead = Bb.seg.len * 1.5;
                     //Bb.x += randn_bm()/3.0*0.2*tt.track.defaultSteeringRadius;
                     //Bb.y += randn_bm()/3.0*0.2*tt.track.defaultSteeringRadius;
@@ -133,27 +155,42 @@ function batchAI(ai, traj, states, N, finalCallback) {
 
                     let Bt = tt.b2t(new P().mov(Bb), state.n);
                     tt.move(Bt, dstate.n, tt.moves, 0);
+
                     let result = tt.getMove(dstate.n).result;
-                    if (!result.legal || result.offTrackFraction)
+                    if (!result.legal || result.offTrackFraction > 0)
+                        continue;
+                    tt.move(tt.t2b(tt.c(state.n+1),state.n+1),dstate.n+1, tt.moves, 0);
+                    result = tt.getMove(dstate.n+1).result;
+                    if (result.offTrackFraction > 0)
                         continue;
                     dstate.collision = dstate.collision||0 + (result.offTrackFraction > 0 ? 1 : 0);
                     let Ab = tt.t2b(tt.get(state.n), state.n);
                     let speed = new P().mov(Bb).sub(Ab);
-                    let nspeed = new P().mov(Bb).sub(tt.t2b(tt.c(state.n-1), state.n-1)).n()//new P().mov(speed).n();
+                    let nspeed = new P().mov(Bb).sub(tt.t2b(tt.c(state.n-1), state.n-1))//new P().mov(speed).n();
+                    //if(nspeed.len() < traj.track.defaultSteeringRadius * 0.5)
+                    //    continue;last
+                    nspeed = nspeed.n()
                     let v = tt.track.points2D[(Bb.ix+1)%tt.track.points2D.length][Bb.iy];
                     v = new P().mov(v).sub(Bb).n();
                     dstate.bmoves[state.depth0 - state.depth] = new P().mov(Bb);//JSON.parse(JSON.stringify(Bb));
                     v = (nspeed.x*v.x + nspeed.y*v.y);
+                    //vsgn = Math.sign(v);
+                    //v = 10*(1/(1+Math.exp(-50*v))-0.9);
                     v *= speed.len()/tt.track.defaultSteeringRadius;
-                    dstate.v = speed.len();
-                    let ret = tt.scoreAt(dstate.n, undefined, target, -0.5);
+                    if(state.depth0 === state.depth)
+                        dstate.v = speed.len();
+                    let ret = tt.scoreAt(dstate.n, undefined, target, ai.shorten);
                     let gScore = dstate.moves.length;// + (10*state.collision||0);
                     let lat = Bb.lat*len;
                     if(target < lat) {
                         lat -= len;
                     }
+                    // have we missed the shortened checkpoint line?
+                    dstate.far = target - lat  < 0 && target - lat > len/2;
                     let rest = Math.max(0, (target - lat))/tt.track.defaultSteeringRadius;
                     let hScore = (Math.sqrt(v*v + 2*rest)-v);
+                    if(ph)
+                        hScore -= 1.0/(new P().mov(ph).sub(Bb).len());
                     let fScore = gScore + hScore;
                     if (ret.length > 0 && ret[0].point.t < 1 && state.finished === undefined) {
                         fScore = gScore - 1 + ret[0].point.t;
@@ -164,17 +201,21 @@ function batchAI(ai, traj, states, N, finalCallback) {
                             ai.result.best = dstate.bmoves;
                         }
                     } else if (ret.length > 0 && ret[0].point.t < 1 && state.finished === 1) {
-                        fScore = state.val - 1;//ai.result.bestd;
-                        dstate.finished = 1;
+                        dstate.finished = 2;
+                    } else {
+                        dstate.lats[dstate.n] = Bb.lat;
                     }
                     dstate.val = fScore;
                     //if(states.length < 1 || fScore < 1.3*(states.peek().val))
                         states.push(dstate);
                         //added += 1;
-
-                    ai.progress_current += 1;
-                    if (ai.progress_current > 0.75 * ai.progress_count)
-                        ai.progress_count *= 2.0;
+                    let diff = target-target0;
+                    diff = diff < 0 ? len + target-target0 : target-target0;
+                    let curr = Bb.lat*len-target0;
+                    curr = curr < 0 ? curr + len : curr;
+                    ai.progress_current = Math.max((ai.progress_current+1)%ai.progress_count, curr/diff *ai.progress_count);
+                    //if (ai.progress_current > 0.75 * ai.progress_count)
+                    //    ai.progress_count *= 2.0;
 
                    /* if(j >= candidates.length -1) {
                         if(added === 0) {
@@ -201,6 +242,7 @@ function batchAI(ai, traj, states, N, finalCallback) {
             process(ai, traj, states, finalCallback)();
         }
         else {
+            console.log("QUEUE.len == ", states.length);
             finalCallback([ai.result.best.bmoves[0], ai.result.bestd, ai]);
         }
     }
@@ -241,7 +283,7 @@ AI.prototype._goodMove = function(traj, n0, depth0, depth, finalCallback) {
     if(traj.target.length > 0)
         state0.lats = JSON.parse(JSON.stringify(traj.target));
     else
-        state0.lats = [traj.track.design.startposAt(this.sid)/len+200];
+        state0.lats = [traj.track.design.startposAt(this.sid)/len];
     traj.target = state0.lats;
     //console.log(state0.lats);
     //traj.lastLat = traj.lastLat||(traj.track.design.startposAt(this.sid)+traj.track.defaultSteeringRadius);
