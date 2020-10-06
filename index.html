@@ -33,8 +33,8 @@
     let view       = new View("canvas");
     let model      = new Model().updates(view);
     let controller = new Controller("body").manipulates(model, view);
-    let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 -20 15 P 900 F 100";
-    //let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 S 10 C -70 80 C 90 70 z G 10 -20 15 P 900 F 160";
+    //let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 -20 15 P 900 F 100";
+    let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 S 10 C -70 80 C 90 70 z G 10 -20 15 P 900 F 160";
     const urlParams = new URLSearchParams(window.location.search);
     let players = (urlParams.get("players")||"H1").split("");
     //console.log(JSON.stringify(players));

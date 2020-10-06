@@ -274,8 +274,8 @@ Trajectory.prototype.scoreAt = function(i, kevinLine, at, id, shorten ) {
         ret.push({"point":p, "id": id, "direction": Math.sign(dir)});
     }
     ret.sort(function(a, b) { return a.point.t - b.point.t; })
-    if(ret.length > 0)
-        ;//console.log(JSON.stringify(ret));
+    //if(ret.length > 0)
+    //    console.log(JSON.stringify(ret));
     return ret;
 }
 

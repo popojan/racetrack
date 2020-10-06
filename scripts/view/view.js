@@ -80,7 +80,7 @@ View.prototype.hatchCircle = function(t, S, R, lastMove, alpha, beta, color1, co
     //this.drawMark(B);
 
 };
-View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, circlesFrom, circlesTo) {
+View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, globalAlpha) {
     let lastMove = t.moves.length;
     let player = model.race.players[i];
     if(i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
@@ -105,7 +105,7 @@ View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, circlesFrom, ci
         this.drawArrow(new P().mov(p).sub(new P(p.vx, p.vy)), p, this.colors[i], true, false);
     }
     for (let j = 0; j < lastMove; ++j) {
-        this.drawMove(t, j, (j === lastMove-1 || (j >= moveFrom && j < moveTo)), this.colors[i], 1.0)
+        this.drawMove(t, j, j >= (moveFrom||(lastMove-1)) && j < (moveTo||lastMove), this.colors[i], globalAlpha)
         if(false) { //j >= (circlesFrom||Infinity) && j< (circlesFrom||-Infinity) ) { // DEBUG
             let R = t.steeringRadius(j);
             let S1 = t.t2b(player.trajectory.c(j), j);
@@ -162,34 +162,24 @@ View.prototype.render = function(model) {
             let traj = model.race.players[model.playerToMove].trajectory;
             let tt = new Trajectory(model.track);
             tt.moves = ai.states.peek().moves;
-            this.drawTrajectory(tt, Infinity, traj.moves.length, tt.moves.length);
-            let targets = ai.states.peek().lats;//traj.target;
-            let len = model.track.design.length();
-            //console.log(JSON.stringify(targets));
-            if(targets) {
-                for (let j = 0; j < targets.length + 1; ++j) {
-                    let add = 0;
-                    //if(j === targets.length) { add = 80/len;}
-                    if(j === traj.moves.length-1) {add = ai.ahead;}
-                    if(add === 0) continue;
-                    let  at =(targets[Math.min(targets.length-1,j)])*len+add;
 
-                    let line = model.track.design.line(at, ai.shorten);
-                    let A = this.v(new P(line.x1, line.y1));
-                    let B = this.v(new P(line.x2, line.y2));
-                    let tgt = model.race.players[model.playerToMove].trajectory.target.length - 1;
-                    ctx.lineWidth = (add > 0) ? 4 : 1;
-                    ctx.strokeStyle = ctx.fillStyle;
-                    ctx.globalAlpha = 0.25;
-                    ctx.beginPath();
-                    ctx.moveTo(A.x, A.y);
-                    ctx.lineTo(B.x, B.y);
-                    //console.log(JSON.stringify([A, B]))
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.globalAlpha = 1.0;
-                }
-            }
+            this.drawTrajectory(tt, Infinity, traj.moves.length, traj.moves.length+1, 1.0);
+            this.drawTrajectory(tt, Infinity, traj.moves.length+1, tt.moves.length-1, 0.25);
+            ctx.globalAlpha = 0.1;
+            let  at = ai.currentTarget;
+            let line = model.track.design.line(at, ai.shorten);
+            let A = this.v(new P(line.x1, line.y1));
+            let B = this.v(new P(line.x2, line.y2));
+            //let tgt = model.race.players[model.playerToMove].trajectory.target.length - 1;
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.beginPath();
+            ctx.moveTo(A.x, A.y);
+            ctx.lineTo(B.x, B.y);
+            //console.log(JSON.stringify([A, B]))
+            ctx.closePath();
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
         }
     }
     //ctx.stroke();
@@ -216,14 +206,15 @@ View.prototype.drawCircle = function(c, R, color, op, filled) {
     ctx.closePath();
 };
 
-View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color) {
+View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color, globalAlpha) {
+    globalAlpha = globalAlpha||1.0;
     let t0 = trajectory.animationMoveFraction;
     let ctx = this.context;
     let ret = trajectory.bez(moveNumber);
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
     ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.2;
+    ctx.globalAlpha = 0.2*globalAlpha;
 
     if(drawMove/* || trajectory.animationMove ===  moveNumber*/) {
         ctx.beginPath();
@@ -235,8 +226,8 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color) {
         ctx.stroke();//}*/
     }
 
-    ctx.globalAlpha = 1.0;
-    let legal = trajectory.legal(moveNumber);
+    ctx.globalAlpha = 1.0 * globalAlpha;
+    //let legal = trajectory.legal(moveNumber);
     let intersections = trajectory.getMove(moveNumber).result.intersections;
     for(let j = 0; j < intersections.count; ++j) {
         let cp = intersections.points[j];
@@ -255,6 +246,7 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color) {
             this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0, this.tmp_p1);
         this.drawArrow(this.tmp_p0, this.tmp_p1, color, false, false);
     }
+    ctx.globalAlpha = 1.0;
 };
 
 View.prototype.drawTrack = function(track) {
@@ -279,7 +271,7 @@ View.prototype.drawTrack = function(track) {
         ctx.moveTo(check.x1 * this.scale.x + this.translation.x, check.y1 * this.scale.y + this.translation.y);
         ctx.lineTo(check.x2 * this.scale.x + this.translation.x, check.y2 * this.scale.y + this.translation.y);
         ctx.strokeStyle = "#808080";
-        ctx.closePath();
+        //ctx.closePath();
         ctx.stroke();
     }
     let _this = this;
@@ -358,11 +350,11 @@ View.prototype.drawArrow = function(a, b, color, filled, cross) {
         ctx.lineWidth = 0;
     else
         ctx.lineWidth = 1;
-    ctx.beginPath();
     let scale =  this.arrowScale * model.track.defaultCollisionRadius * 0.75 * Math.sqrt(1.25);
     let u = this.eax.mov(a).sub(b).n().mul(scale);
     let v = this.ebx.mov(u).p().mul(0.5);
     if(cross === true) {
+        ctx.beginPath()
         u.mul(0.5);
         this.v(this.ecx.mov(b).sub(u).add(v));
         ctx.moveTo(this.ecx.x, this.ecx.y);

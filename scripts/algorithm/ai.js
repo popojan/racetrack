@@ -3,15 +3,15 @@ function AI (track, player, sid) {
     //track.initAI(128, 11, 12);
     //track.initAI(64, 3, 12);
     //track.initAI(512, 15, 12);
-    track.initAI(512, 15, 12);
+    track.initAI(764, 15, 12);
     //track.initAI(132, 7, 12);//track.initAI(512, 11, 12);
     this.track = track;
     this.depth0 = 4;// 4 @ [32,8,8,8];
     this.result = new State();
     this.sid = sid;
-    this.ahead = 200;
+    this.ahead = 180;
     this.ahead2 = 40;
-    this.shorten = 0.1;
+    this.shorten = 0.025;
 }
 
 AI.prototype.getProgress = function(p) {
@@ -92,17 +92,22 @@ function batchAI(ai, traj, states, N, finalCallback) {
 
         let vv = 0.0;
 
+        let ii = traj.moves.length-1;
+        let target = traj.target[ii]*len + ai.ahead;
+        if(ai.best && ai.best.bmoves)
+            target += ai.best.v;// ai.best.bmoves[ai.best.bmoves.length-1].seg.len/2;
+        let target0 = traj.target[ii - 1]*len;//traj.targets[traj.target]; //state.lats.length - 1 - state.depth0 + state.depth
+        target = target % len;
+
+        ai.currentTarget = target;
+        //traj.targets[traj.target]; //state.lats.length - 1 - state.depth0 + state.depth
+
         for(let step = 0; step < N && states.length > 0 && !end; ++step) {
             state = states.pop();
-            let ii = Math.min(traj.moves.length, state.lats.length-1);
-            let target = state.lats[ii]*len + ai.ahead;//traj.targets[traj.target]; //state.lats.length - 1 - state.depth0 + state.depth
-            let target0 = state.lats[ii - 1]*len;//traj.targets[traj.target]; //state.lats.length - 1 - state.depth0 + state.depth
-
             //if(state.finished === 1) {
             //    target += ai.ahead2; //traj.targets[(traj.target+10) %  traj.targets.length];
             //}
             //console.log(JSON.stringify(state.lats), target);
-            target = target % len;
             if (state.finished > 1) {
                 end = true;
                 let tt = new Trajectory(traj.track);
@@ -173,14 +178,14 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     let v = tt.track.points2D[(Bb.ix+1)%tt.track.points2D.length][Bb.iy];
                     v = new P().mov(v).sub(Bb).n();
                     dstate.bmoves[state.depth0 - state.depth] = new P().mov(Bb);//JSON.parse(JSON.stringify(Bb));
-                    v = (nspeed.x*v.x + nspeed.y*v.y);
+                    v = 1.0;//(nspeed.x*v.x + nspeed.y*v.y);
                     //vsgn = Math.sign(v);
                     //v = 10*(1/(1+Math.exp(-50*v))-0.9);
                     v *= speed.len()/tt.track.defaultSteeringRadius;
                     if(state.depth0 === state.depth)
                         dstate.v = speed.len();
                     let ret = tt.scoreAt(dstate.n, undefined, target, ai.shorten);
-                    let gScore = dstate.moves.length;// + (10*state.collision||0);
+                    let gScore = dstate.moves.length -1;// + (10*state.collision||0);
                     let lat = Bb.lat*len;
                     if(target < lat) {
                         lat -= len;
@@ -267,23 +272,16 @@ AI.prototype._goodMove = function(traj, n0, depth0, depth, finalCallback) {
     state0.n = traj.moves.length - 1;
     state0.collision = traj.collision||0;
     this.K = 300;
-    if(!traj.targets || traj.targets.length < 1) {
-        traj.target = (10 - this.sid + this.K) % this.K;
-        traj.targets = [];
-        let len = traj.track.design.length();
-
-        for(let i = 1; i<= this.K; ++i) {
-            traj.targets.push((20 + i/this.K*len)%len);
-        }
-    }
     state0.lap = [traj.lap||0];
     state0.lap0 = [traj.lap||0];
     state0.estimate = 100000;
     let len = traj.track.design.length();
-    if(traj.target.length > 0)
+    if(traj.target)
         state0.lats = JSON.parse(JSON.stringify(traj.target));
-    else
-        state0.lats = [traj.track.design.startposAt(this.sid)/len];
+    else {
+        state0.lats = [traj.track.design.startposAt(this.sid) / len];
+        traj.target = JSON.parse(JSON.stringify(state0.lats));
+    }
     traj.target = state0.lats;
     //console.log(state0.lats);
     //traj.lastLat = traj.lastLat||(traj.track.design.startposAt(this.sid)+traj.track.defaultSteeringRadius);
