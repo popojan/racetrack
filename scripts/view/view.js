@@ -106,6 +106,7 @@ View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, globalAlpha) {
     }
     for (let j = 0; j < lastMove; ++j) {
         this.drawMove(t, j, j >= (moveFrom||(lastMove-1)) && j < (moveTo||lastMove), this.colors[i], globalAlpha)
+        globalAlpha *= 0.85;
         if(false) { //j >= (circlesFrom||Infinity) && j< (circlesFrom||-Infinity) ) { // DEBUG
             let R = t.steeringRadius(j);
             let S1 = t.t2b(player.trajectory.c(j), j);
@@ -117,35 +118,36 @@ View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, globalAlpha) {
 View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
     this.drawTrack(model.track);
-    for (let i = 0; i < model.race.players.length; ++i) {
-        let player = model.race.players[i];
-        this.drawTrajectory(player.trajectory, i);
+    for (const player of model.race.players) {
+        this.drawTrajectory(player.trajectory, player.i);
     }
 
     let ctx = this.context;
     //ctx.strokeStyle = "#eb0000";
     ctx.lineWidth = 1;
 
-    for(let i = 0; i < model.race.players.length; ++i) {
-        if (!model.race.ais[i]) continue;
+    for(const player of model.race.players) {
+        if (!model.race.ais[player.i]) continue;
 
-            let tt = undefined;//model.race.ais[i].traj;
-            if(!tt) continue;
-            let m = tt.moves[0].point;
-            ctx.moveTo(this.scale.x * m.x + this.translation.x, this.scale.y * m.y + this.translation.y);
-            //console.log(JSON.stringify(model.race.ais[1].traj.moves));
-            ctx.beginPath();
-            if(!tt) continue;
-            for (let j = 1; j < tt.moves.length; ++j) {
-                    //this.drawMove(tt, j, true, this.colors[i]);
-                    //let S1 = tt.t2b(tt.c(j), j);
-                    //this.drawCircle(S1, tt.steeringRadius(j), this.colors[1], j / tt.moves.length);
-                    let m0 = tt.moves[j - 1].point;
-                    let m = tt.moves[j].point;
-                    //this.drawArrow(m0, m, true, false);
-                    ctx.lineTo(this.scale.x*m.x+this.translation.x, this.scale.y * m.y + this.translation.y);
-                    ctx.stroke();
-                }
+        let tt = undefined;//model.race.ais[i].traj;
+        if (!tt) continue;
+        let m = tt.moves[0].point;
+        ctx.moveTo(this.scale.x * m.x + this.translation.x, this.scale.y * m.y + this.translation.y);
+        //console.log(JSON.stringify(model.race.ais[1].traj.moves));
+        ctx.beginPath();
+        if (!tt) continue;
+        let prevMove = null;
+        for (const move of tt.moves) {
+            if (prevMove === null) {
+                prevMove = move;
+                continue;
+            }
+            let m0 = prevMove.point;
+            let m = move.point;
+            //this.drawArrow(m0, m, true, false);
+            ctx.lineTo(this.scale.x * m.x + this.translation.x, this.scale.y * m.y + this.translation.y);
+            ctx.stroke();
+        }
     }
     if(model.coord) {
         ctx.font = '50px serif';
@@ -302,7 +304,7 @@ View.prototype.drawTrack = function(track) {
 
     if(DEBUG) {
         let points = track.cover ? track.cover.getAllPoints() : [];
-        if(false && DEBUG && points.length > 0) {
+        if(points.length > 0) {
             for (let i = 0; i < points.length; ++i) {
                 this.drawCircle(points[i], 0.5, "#eb0000", points[i].data.lat, true);
             }

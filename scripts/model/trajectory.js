@@ -26,6 +26,8 @@ function Trajectory (track) {
     this.kevinLine.getIntersectionParams();
     this.ts = [null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null];
+    this.best = null;
+    this.bestd = null;
     return this;
 }
 

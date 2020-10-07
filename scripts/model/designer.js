@@ -433,7 +433,7 @@ Designer.prototype.cover = function(lcount, wcount, psize) {
         let a = new P(line.x1, line.y1);
         let b = new P(line.x2, line.y2);
         let w = new P().mov(b).sub(a);
-        for(let wat = 0.01, iy = 0;wat < 1.00; wat += 0.98/(wcount-1), ++iy) {
+        for(let wat = 0.01, iy = 0; wat < 1.00; wat += 0.98/(wcount-1), ++iy) {
 
             let x = line.x1 + wat * w.x;
             let y = line.y1 + wat * w.y;
@@ -563,16 +563,17 @@ Designer.prototype.check = function(t) {
     this.checks.push(t);
 };
 
-Designer.prototype.line = function(at, shorten) {
+Designer.prototype.line = function(at, shorten0) {
     let p = this.at(at);
+    let shorten = 0;
     if(p.seg.r)
-        shorten = shorten ? shorten + (1-shorten) * (-2.0 * Math.pow(1-Math.abs(p.part - 0.55)/0.55,0.25) + 1): 1.0;
+        shorten = shorten0 ? shorten0 + (1-shorten0) * (-2.0 * Math.pow(1-Math.abs(p.part - 0.65)/0.65,0.25) + 1): 1.0;
     else
         shorten = 1.0;//shorten ? shorten + (1-shorten) * (-2.0 * Math.pow(Math.abs(p.part - 0.5)/0.5,0.5) + 1): 1.0;
     let b = (p.a+90)/180*Math.PI;
     let side = this.w;
     //console.log(JSON.stringify(p));
-    let sign = (Math.sign(p.seg.phi)||1);
+    let sign = shorten0 === undefined ? -1 : (Math.sign(p.seg.phi)||1);
     let subx = -sign*side*Math.cos(b);
     let suby = -sign*side*Math.sin(b);
     let addx = shorten*subx;

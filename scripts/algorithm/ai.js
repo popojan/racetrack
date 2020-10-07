@@ -1,14 +1,19 @@
 function AI (track, player, sid) {
     this.player = player;
-    track.initAI(1024, 15, 12);
+    track.initAI(1024, 30, 12);
     this.track = track;
     this.depth0 = 4;// 4 @ [32,8,8,8];
     this.result = new State();
     this.sid = sid;
-    this.ahead = 220;
+    this.ahead = 250;
+    this.aheadSegmentFraction = 0.5;
     this.shorten = 0.05;
     this.randomize = 0.0;
-    this.annulus = 0.8;
+    this.annulus = 0.75;
+    this.progress_count = null;
+    this.progress_current = null;
+    this.lastState = undefined;
+    this.lastBatch = 0;
 }
 
 AI.prototype.getProgress = function(p) {
@@ -95,13 +100,24 @@ function batchAI(ai, traj, states, N, finalCallback) {
         let len = traj.track.design.length();
 
         let ii = traj.moves.length-1;
-        let target = traj.target[Math.min(traj.target.length-1,ii)]*len + ai.ahead;
+        let seglen = ai.ahead;
+        if(ai.result &&ai.result.best && ai.result.best.bmoves && ai.result.best.bmoves.length > 0) {
+            seglen = ai.result.best.bmoves[Math.floor(ai.result.best.gScore)-traj.moves.length-1].seg.len;
+        }
+        //console.log(seglen);
+        let target = traj.target[Math.min(traj.target.length-1,ii)]*len + ai.ahead + seglen*ai.aheadSegmentFraction;
         target = target % len;
         ai.currentTarget = target;
 
-        for(let step = 0; step < N && states.length > 0 && !end; ++step) {
-            state = states.pop();
-            if (state.finished > 1) {
+        //let step = 0;
+        while(N > 0 && (states.length > 0 || ai.lastState) && !end) {
+            if(ai.lastState)
+                state = ai.lastState;
+            else {
+                state = states.pop();
+                //++step;
+            }
+            if (!ai.lastState && state.finished > 1) {
                 end = true;
                 let tt = new Trajectory(traj.track);
                 tt.moves = state.moves;
@@ -110,19 +126,30 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     console.log("FINAL SCORE = ", finalScore);
                 ai.result.best = state;
                 ai.result.bestd = state.val;
-                traj.collision = traj.collision||0 + state.collision||0;
+                //traj.collision = traj.collision||0 + state.collision||0;
                 traj.target = JSON.parse(JSON.stringify(state.lats));
                 break;
             } else {
                 let tt = new Trajectory(traj.track);
                 tt.moves = state.moves;
-                let candidates = getSortedCandidates(tt, traj.track.cover, state.n, ai.annulus);
-                for (let j = 0; j < candidates.length; j += 1){ //state.depth0 - state.depth + 1){
+                let candidates = getSortedCandidates(tt, traj.track.cover, state.n, ai.annulus)
+                let end = Math.min(ai.lastBatch + N, candidates.length);
+                let length = candidates.length;
+                candidates = candidates.slice(ai.lastBatch||0, end);
+                if(end === length) {
+                    ai.lastState = undefined;
+                    ai.lastBatch = 0;
+                    N -= candidates.length;
+                } else {
+                    ai.lastState = state;
+                    ai.lastBatch += candidates.length;
+                }
+                for (const candidate of candidates){ //state.depth0 - state.depth + 1){
                     let dstate = JSON.parse(JSON.stringify(state));
-                    --dstate.depth;
-                    ++dstate.n;
+                    dstate.depth = state.depth - 1;
+                    dstate.n = state.n + 1;
 
-                    let Bb = candidates[j%candidates.length].data;
+                    let Bb = candidate.data;
                     if(ai.randomize > 0 && Math.random() < ai.randomize)
                         continue;
                     //Bb.x += randn_bm() / 3.0 * ai.randomize * tt.track.defaultSteeringRadius;
@@ -130,6 +157,12 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     tt.moves = dstate.moves;
 
                     let Bt = tt.b2t(new P().mov(Bb), state.n);
+                    let Ab = tt.t2b(tt.get(state.n), state.n);
+                    let nspeed = new P().mov(Bb).sub(tt.t2b(tt.c(state.n-1), state.n-1))//new P().mov(speed).n();
+                    let speed = new P().mov(Bb).sub(Ab);
+                    if(speed.len() < traj.track.defaultSteeringRadius * 0.5)
+                        continue;
+
                     tt.move(Bt, dstate.n, tt.moves, 0);
 
                     let result = tt.getMove(dstate.n).result;
@@ -140,16 +173,11 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     result = tt.getMove(dstate.n+1).result;
                     if (result.offTrackFraction > 0)
                         continue;
-                    let Ab = tt.t2b(tt.get(state.n), state.n);
-                    let speed = new P().mov(Bb).sub(Ab);
-                    let nspeed = new P().mov(Bb).sub(tt.t2b(tt.c(state.n-1), state.n-1))//new P().mov(speed).n();
-                    //if(nspeed.len() < traj.track.defaultSteeringRadius * 0.5)
-                    //    continue;last
                     nspeed = nspeed.n()
                     let v = tt.track.points2D[(Bb.ix+1)%tt.track.points2D.length][Bb.iy];
                     v = new P().mov(v).sub(Bb).n();
-                    dstate.bmoves[state.depth0 - state.depth] = new P().mov(Bb);//JSON.parse(JSON.stringify(Bb));
-                    v =1.0;// (nspeed.x*v.x + nspeed.y*v.y);
+                    dstate.bmoves[state.depth0 - state.depth] = Bb;//JSON.parse(JSON.stringify(Bb));
+                    v = 1.0;//(nspeed.x*v.x + nspeed.y*v.y);
                     //vsgn = Math.sign(v);
                     //v = 10*(1/(1+Math.exp(-50*v))-0.9);
                     v = v*(speed.len()/tt.track.defaultSteeringRadius + 0.5);
@@ -157,6 +185,7 @@ function batchAI(ai, traj, states, N, finalCallback) {
                         dstate.v = speed.len();
                     let ret = tt.scoreAt(dstate.n, undefined, target, ai.shorten);
                     let gScore = dstate.moves.length - 1;
+                    dstate.gScore = gScore;
                     let lat = Bb.lat*len;
                     if(target < lat) {
                         lat -= len;
@@ -169,11 +198,11 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     if (ret.length > 0 && ret[0].point.t < 1 && state.finished === undefined) {
                         fScore = gScore - 1 + ret[0].point.t;
                         dstate.finished = 2;
-                        if(dstate.val < ai.result.bestd)
+                        /*if(dstate.val < ai.result.bestd)
                         {
                             ai.result.bestd = dstate.val;
                             ai.result.best = dstate.bmoves;
-                        }
+                        }*/
                     } else if (ret.length > 0 && ret[0].point.t < 1 && state.finished === 1) {
                         dstate.finished = 2;
                     } else {
@@ -185,9 +214,12 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     if (ai.progress_current > 0.75 * ai.progress_count)
                         ai.progress_count *= 2.0;
                 }
+                if(ai.lastState) {
+                    break;
+                }
             }
         }
-        if (states.length > 0 && !end) {
+        if ((states.length > 0 || ai.lastState) && !end) {
             process(ai, traj, states, finalCallback)();
         }
         else {
@@ -198,7 +230,7 @@ function batchAI(ai, traj, states, N, finalCallback) {
 
 function process(ai, traj, states, finalCallback) {
     return function () {
-        setTimeout(batchAI(ai, traj, states,1, finalCallback), 0);
+        setTimeout(batchAI(ai, traj, states,10, finalCallback), 0);
     };
 }
 
@@ -210,7 +242,7 @@ AI.prototype._goodMove = function(traj, n0, depth0, depth, finalCallback) {
     this.progress_count = 10000;
     this.progress_current = 0;
     state0.moves = JSON.parse(JSON.stringify(traj.moves));
-    state0.n = traj.moves.length - 1;
+    state0.n = traj.moves.length-1;
     state0.collision = traj.collision||0;
     state0.estimate = 100000;
     let len = traj.track.design.length();

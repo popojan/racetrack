@@ -5,6 +5,8 @@ function Race() {
 
 Race.prototype.addPlayer = function(player, ai) {
     this.players.push(player);
+    player.ai = ai;
+    player.i = this.players.length - 1;
     this.ais.push(ai)
 };
 
