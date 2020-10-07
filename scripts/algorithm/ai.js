@@ -1,12 +1,12 @@
 function AI (track, player, sid) {
     this.player = player;
-    track.initAI(1024, 30, 12);
+    track.initAI(512, 15, 12);
     this.track = track;
     this.depth0 = 4;// 4 @ [32,8,8,8];
     this.result = new State();
     this.sid = sid;
-    this.ahead = 250;
-    this.aheadSegmentFraction = 0.5;
+    this.ahead = 100.0;
+    this.aheadSegmentFraction = 0.0;
     this.shorten = 0.05;
     this.randomize = 0.0;
     this.annulus = 0.75;
@@ -99,23 +99,18 @@ function batchAI(ai, traj, states, N, finalCallback) {
         let end = false;
         let len = traj.track.design.length();
 
-        let ii = traj.moves.length-1;
-        let seglen = ai.ahead;
-        if(ai.result &&ai.result.best && ai.result.best.bmoves && ai.result.best.bmoves.length > 0) {
-            seglen = ai.result.best.bmoves[Math.floor(ai.result.best.gScore)-traj.moves.length-1].seg.len;
-        }
-        //console.log(seglen);
-        let target = traj.target[Math.min(traj.target.length-1,ii)]*len + ai.ahead + seglen*ai.aheadSegmentFraction;
+        let ii = traj.moves.length;
+        let ahead = ai.ahead;
+        if(ai.result.best && ai.result.best.v)
+            ahead = Math.max(ai.ahead, 0.5 * ai.result.best.v*ai.result.best.v/traj.track.defaultSteeringRadius);
+        let target = traj.target[Math.min(ii, traj.target.length-1)]*len + ahead;
         target = target % len;
         ai.currentTarget = target;
-
-        //let step = 0;
         while(N > 0 && (states.length > 0 || ai.lastState) && !end) {
             if(ai.lastState)
                 state = ai.lastState;
             else {
                 state = states.pop();
-                //++step;
             }
             if (!ai.lastState && state.finished > 1) {
                 end = true;
@@ -126,13 +121,13 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     console.log("FINAL SCORE = ", finalScore);
                 ai.result.best = state;
                 ai.result.bestd = state.val;
-                //traj.collision = traj.collision||0 + state.collision||0;
                 traj.target = JSON.parse(JSON.stringify(state.lats));
                 break;
             } else {
                 let tt = new Trajectory(traj.track);
                 tt.moves = state.moves;
-                let candidates = getSortedCandidates(tt, traj.track.cover, state.n, ai.annulus)
+                let alpha = Math.min(state.v/traj.track.defaultSteeringRadius/3, 1);
+                let candidates = getSortedCandidates(tt, traj.track.cover, state.n, ai.annulus);
                 let end = Math.min(ai.lastBatch + N, candidates.length);
                 let length = candidates.length;
                 candidates = candidates.slice(ai.lastBatch||0, end);
@@ -177,9 +172,7 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     let v = tt.track.points2D[(Bb.ix+1)%tt.track.points2D.length][Bb.iy];
                     v = new P().mov(v).sub(Bb).n();
                     dstate.bmoves[state.depth0 - state.depth] = Bb;//JSON.parse(JSON.stringify(Bb));
-                    v = 1.0;//(nspeed.x*v.x + nspeed.y*v.y);
-                    //vsgn = Math.sign(v);
-                    //v = 10*(1/(1+Math.exp(-50*v))-0.9);
+                    v = 1.0; //nspeed.x*v.x + nspeed.y*v.y);
                     v = v*(speed.len()/tt.track.defaultSteeringRadius + 0.5);
                     if(state.depth0 === state.depth)
                         dstate.v = speed.len();
@@ -198,11 +191,6 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     if (ret.length > 0 && ret[0].point.t < 1 && state.finished === undefined) {
                         fScore = gScore - 1 + ret[0].point.t;
                         dstate.finished = 2;
-                        /*if(dstate.val < ai.result.bestd)
-                        {
-                            ai.result.bestd = dstate.val;
-                            ai.result.best = dstate.bmoves;
-                        }*/
                     } else if (ret.length > 0 && ret[0].point.t < 1 && state.finished === 1) {
                         dstate.finished = 2;
                     } else {

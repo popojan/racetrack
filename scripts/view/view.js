@@ -25,6 +25,29 @@ View.prototype.clear = function() {
     this.context.fillRect(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
 };
 
+View.prototype.drawGrid = function(minorCount, majorCount) {
+    let W = Math.max(this.canvas.clientWidth, this.canvas.clientHeight);
+    for(const count of [minorCount, majorCount]) {
+        for (let i = 0; i < count; ++i) {
+            if(count === minorCount && i % majorCount === 0)
+                continue;
+            this.context.strokeStyle = "#404040";
+            this.context.lineWidth = count === minorCount ? 0.5:1.0;
+            this.context.beginPath();
+            //this.context.strokeDasharray = count === minorCount ? [2, 3] : [1, 1];
+            this.context.moveTo(i * W / count, 0);
+            this.context.lineTo(i * W / count, this.canvas.clientHeight);
+            this.context.stroke();
+            this.context.beginPath();
+            //this.context.strokeDasharray = count === minorCount ? [2, 3] : [1, 1];
+            this.context.moveTo(0, i * W / count);
+            this.context.lineTo(this.canvas.clientWidth, i * W / count);
+            this.context.stroke();
+
+        }
+    }
+};
+
 View.prototype.resize = function (width, height, bbox) {
     let scale = Math.min(width / bbox.width, height / bbox.height);
     this.scale = new P(scale, scale);
@@ -106,7 +129,7 @@ View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, globalAlpha) {
     }
     for (let j = 0; j < lastMove; ++j) {
         this.drawMove(t, j, j >= (moveFrom||(lastMove-1)) && j < (moveTo||lastMove), this.colors[i], globalAlpha)
-        globalAlpha *= 0.85;
+        globalAlpha *= 0.8;
         if(false) { //j >= (circlesFrom||Infinity) && j< (circlesFrom||-Infinity) ) { // DEBUG
             let R = t.steeringRadius(j);
             let S1 = t.t2b(player.trajectory.c(j), j);
@@ -160,25 +183,22 @@ View.prototype.render = function(model) {
         ctx.fillRect(5, 5, Math.min(1.0, ai.progress_current / ai.progress_count) * (this.canvas.clientWidth-10), 15);
         ctx.beginPath();
 
-        if(DEBUG || true && ai.states.length > 0) {
+        if(DEBUG || true && (ai.states.length > 0 || ai.lastState)) {
             let traj = model.race.players[model.playerToMove].trajectory;
             let tt = new Trajectory(model.track);
-            tt.moves = ai.states.peek().moves;
+            tt.moves = (ai.lastState ? ai.lastState : ai.states.peek()).moves;
 
-            this.drawTrajectory(tt, Infinity, traj.moves.length, traj.moves.length+1, 1.0);
-            this.drawTrajectory(tt, Infinity, traj.moves.length+1, tt.moves.length-1, 0.5);
+            this.drawTrajectory(tt, Infinity, traj.moves.length, tt.moves.length-1, 1.0);
             ctx.globalAlpha = 0.1;
             let  at = ai.currentTarget;
             let line = model.track.design.line(at, ai.shorten);
             let A = this.v(new P(line.x1, line.y1));
             let B = this.v(new P(line.x2, line.y2));
-            //let tgt = model.race.players[model.playerToMove].trajectory.target.length - 1;
             ctx.lineWidth = 1;
             ctx.strokeStyle = ctx.fillStyle;
             ctx.beginPath();
             ctx.moveTo(A.x, A.y);
             ctx.lineTo(B.x, B.y);
-            //console.log(JSON.stringify([A, B]))
             ctx.closePath();
             ctx.stroke();
             ctx.globalAlpha = 1.0;
@@ -262,8 +282,11 @@ View.prototype.drawTrack = function(track) {
         this.trackPath.addPath(p0, t);
         //this.rasterizedTrack = ctx.getImageData(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
     }
+    this.drawGrid(200, 20);
     ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = 0.75;
     ctx.fill(this.trackPath);
+    ctx.globalAlpha = 1.0;
     ctx.lineWidth = 1;
     let solid = ctx.getLineDash();
     ctx.setLineDash([3,2]);
