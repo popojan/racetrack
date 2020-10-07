@@ -83,7 +83,7 @@ View.prototype.hatchCircle = function(t, S, R, lastMove, alpha, beta, color1, co
 View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, globalAlpha) {
     let lastMove = t.moves.length;
     let player = model.race.players[i];
-    if(i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
+    if(player && i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
         lastMove += 1;
         if(i === model.playerToMove/* && model.race.ais[model.playerToMove] === null*/) {
             let R = t.steeringRadius(lastMove - 1);
@@ -100,7 +100,7 @@ View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, globalAlpha) {
             //this.drawMark(pp[1]);
         }
     }
-    if(lastMove === 1) {
+    if(player && lastMove === 1) {
         let p = model.track.startPositions[player.sid];
         this.drawArrow(new P().mov(p).sub(new P(p.vx, p.vy)), p, this.colors[i], true, false);
     }
@@ -158,13 +158,13 @@ View.prototype.render = function(model) {
         ctx.fillRect(5, 5, Math.min(1.0, ai.progress_current / ai.progress_count) * (this.canvas.clientWidth-10), 15);
         ctx.beginPath();
 
-        if(DEBUG || true) {
+        if(DEBUG || true && ai.states.length > 0) {
             let traj = model.race.players[model.playerToMove].trajectory;
             let tt = new Trajectory(model.track);
             tt.moves = ai.states.peek().moves;
 
             this.drawTrajectory(tt, Infinity, traj.moves.length, traj.moves.length+1, 1.0);
-            this.drawTrajectory(tt, Infinity, traj.moves.length+1, tt.moves.length-1, 0.25);
+            this.drawTrajectory(tt, Infinity, traj.moves.length+1, tt.moves.length-1, 0.5);
             ctx.globalAlpha = 0.1;
             let  at = ai.currentTarget;
             let line = model.track.design.line(at, ai.shorten);

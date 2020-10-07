@@ -111,6 +111,7 @@ Trajectory.prototype.evaluate = function(i, moves, fast) {
         }
         result.offTrackFraction = offTrackFraction;
         result.intersections = intersections;
+        result.parity = parity;
         if (fast === undefined || fast < 1) {
             result.checkpoints = this.finished(i, kevinLine);
         }
