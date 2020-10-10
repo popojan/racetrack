@@ -1,25 +1,24 @@
 function AI (track, player, sid) {
     this.player = player;
-    track.initAI(512, 15, 12);
+    this.lcount = 512;
+    this.wcount = 15;
+    track.initAI(this.lcount, this.wcount, 12);
     this.track = track;
-    this.depth0 = 4;// 4 @ [32,8,8,8];
     this.result = new State();
     this.sid = sid;
-    this.ahead = 100.0;
-    this.aheadSegmentFraction = 0.0;
+    this.ahead = 150.0;
     this.shorten = 0.05;
-    this.randomize = 0.0;
-    this.annulus = 0.75;
+    this.randomize = -0.1;
+    this.enhance = false;
+    this.annulus = 0.85;
     this.progress_count = null;
     this.progress_current = null;
     this.lastState = undefined;
     this.lastBatch = 0;
+    this.circle = new QT.Circle();
+    this.tt = new Trajectory(track);
+    this.eax = new P();
 }
-
-AI.prototype.getProgress = function(p) {
-    let ps = this.track.cover.query(new QT.Circle(p.x, p.y, 20));
-    return ps[0].data;
-};
 
 function randn_bm() {
     var u = 0, v = 0;
@@ -28,82 +27,94 @@ function randn_bm() {
     return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
 }
 
-function State(n0, depth0, depth) {
+function State(n) {
     this.val = Infinity;
-    this.ii = 0;
-    this.n = n0 - 1;
-    this.depth0 = depth0;
-    this.depth = depth;
+    this.n = n;
+    this.n0 = n;
     this.bestd = 1000000; //Infinity stringifies as null
     this.moves = [];
-    this.bests = [];
     this.bmoves = [];
-    this.estimate = 100000;
-    this.lap = [];
-    this.lats = [];
+    this.target = [];
 }
 
-function getCandidates(s1, r1, s2, r2) {
-    let dr = new P().mov(s2).sub(s1) ;
-    let d = dr.len();
-    let v = 0.5/d*Math.sqrt((-d+r1-r2)*(-d-r1+r2)*(-d+r1+r2)*(d+r1+r2));
-    let x = 0.5*(d*d -r2*r2+r1*r1)/d
-    let u = new P().mov(dr).n();
-    v = new P().mov(u).p().mul(v);
-    u = new P().mov(u).mul(x);
-    //console.log(JSON.stringify([s1, r1, s2, r2]));
-    return [new P().mov(s1).add(u).add(v),
-        new P().mov(s1).add(u).sub(v)];
-};
-
-function _getSortedCandidates(cover, cb, R, closeTo, mult) {
-    //closeTo = undefined;
+AI.prototype._getSortedCandidates = function(cover, cb, R, closeTo, mult) {
     cb = closeTo||cb;
-    let ps = cover.query(new QT.Circle(cb.x, cb.y, closeTo ? R * mult : R));
-    ps.sort(function (a, b) {
-        return b.data.lat - a.data.lat;
-    });
+    this.circle.x = cb.x;
+    this.circle.y = cb.y;
+    this.circle.r = closeTo ? R * mult : R;
+    this.circle.rPow2 = this.circle.r*this.circle.r;
+    let ps = cover.query(this.circle);
+    console.log(JSON.stringify(this.circle));
     if(ps.length < 1)
         return [];
-    /*
-    let p = closeTo||ps[0];
+    if(!closeTo)
+        return ps;
+    let p = closeTo;
     ps.sort(function (a, b) {
         let db = Math.sqrt((p.x - b.x)*(p.x - b.x) + (p.y - b.y)*(p.y - b.y));
         let da = Math.sqrt((p.x - b.x)*(p.x - b.x) + (p.y - b.y)*(p.y - b.y));
         return da - db;
     });
-    */
     return ps;
 }
 
-function getSortedCandidates(traj, cover, i, annulus, pp, mult) {
-    let track = traj.track;
+AI.prototype.getSortedCandidates = function(traj, cover, i, precision, pp, mult) {
     let cb = traj.t2b(traj.c(i), i);
     let R = traj.steeringRadius(i);
-    let ps =_getSortedCandidates(cover, cb, R, pp, mult);
-    if(!annulus)
+    let ps = this._getSortedCandidates(cover, cb, R, pp, mult);
+    if(!this.annulus)
         return ps;
     let ret = [];
-    for (let i = 0; i < ps.length; ++i) {
-        let aa = new P().mov(cb).sub(ps[i].data);
-        if(aa.len()/R >= annulus)
-            ret.push(ps[i]);
+    for (const psi of ps) {
+        this.eax.mov(psi.data).sub(cb);
+        let r = this.eax.len()
+        if(this.randomize) {
+            if(this.randomize > 0) {
+                psi.x += randn_bm() / 3.0 * this.randomize * R;
+                psi.y += randn_bm() / 3.0 * this.randomize * R;
+                psi.data.x = psi.x;
+                psi.data.y = psi.y;
+            }
+        }
+        if(this.enhance && (R-r/R <= precision)) {
+            let q = copy(psi);
+            q.x = q.data.x = cb.x + this.eax.x * 0.99 * R;
+            q.y = q.data.y = cb.y + this.eax.y * 0.99 * R;
+            ret.push(q);
+        }
+        if(r/R >= this.annulus)
+            ret.push(psi);
     }
     return ret;
 }
 
+function _getWeightedLat(ps, p0, k) {
+    k = Math.min(ps.length, k);
+    let sumw = 1.0;
+    let lat = p0.lat;
+    for(const p of ps.slice(0, k)) {
+        let d = distance(p, p0);
+        let w = Math.min(1000, 1 / d/d );
+        sumw += w;
+        lat += w * p.data.lat;
+    }
+    return lat/sumw;
+}
 
 function batchAI(ai, traj, states, N, finalCallback) {
     return function() {
+
         let state = null;
         let end = false;
         let len = traj.track.design.length();
-
-        let ii = traj.moves.length;
+        let precision = 2*Math.max(len/ai.lcount, traj.track.design.w/ai.wcount);
         let ahead = ai.ahead;
-        if(ai.result.best && ai.result.best.v)
-            ahead = Math.max(ai.ahead, 0.5 * ai.result.best.v*ai.result.best.v/traj.track.defaultSteeringRadius);
-        let target = traj.target[Math.min(ii, traj.target.length-1)]*len + ahead;
+        if(ai.result.best && ai.result.best.v) {
+            let R = traj.track.defaultSteeringRadius;
+            let v = ai.result.best.v;
+            ahead = Math.max(ai.ahead, 0.5*v*v/R -R);
+        }
+        let target = traj.target[Math.min(traj.moves.length-1, 3)]*len + ahead;
         target = target % len;
         ai.currentTarget = target;
         while(N > 0 && (states.length > 0 || ai.lastState) && !end) {
@@ -114,20 +125,20 @@ function batchAI(ai, traj, states, N, finalCallback) {
             }
             if (!ai.lastState && state.finished > 1) {
                 end = true;
-                let tt = new Trajectory(traj.track);
-                tt.moves = state.moves;
+                let tt = ai.tt;
+                tt.moves = copy(traj.moves);
+                tt.moves = tt.moves.concat(state.moves.slice(traj.moves.length, state.moves.length));
                 let finalScore = tt.score();
                 if(finalScore < Infinity)
                     console.log("FINAL SCORE = ", finalScore);
                 ai.result.best = state;
                 ai.result.bestd = state.val;
-                traj.target = JSON.parse(JSON.stringify(state.lats));
+                traj.target = copy(state.target);
                 break;
             } else {
-                let tt = new Trajectory(traj.track);
+                let tt = ai.tt;
                 tt.moves = state.moves;
-                let alpha = Math.min(state.v/traj.track.defaultSteeringRadius/3, 1);
-                let candidates = getSortedCandidates(tt, traj.track.cover, state.n, ai.annulus);
+                let candidates = ai.getSortedCandidates(tt, traj.track.cover, state.n, precision);
                 let end = Math.min(ai.lastBatch + N, candidates.length);
                 let length = candidates.length;
                 candidates = candidates.slice(ai.lastBatch||0, end);
@@ -139,27 +150,26 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     ai.lastState = state;
                     ai.lastBatch += candidates.length;
                 }
-                for (const candidate of candidates){ //state.depth0 - state.depth + 1){
-                    let dstate = JSON.parse(JSON.stringify(state));
-                    dstate.depth = state.depth - 1;
+                for (const candidate of candidates){
+                    let dstate = copy(state);
                     dstate.n = state.n + 1;
 
                     let Bb = candidate.data;
                     if(ai.randomize > 0 && Math.random() < ai.randomize)
                         continue;
-                    //Bb.x += randn_bm() / 3.0 * ai.randomize * tt.track.defaultSteeringRadius;
-                    //Bb.y += randn_bm() / 3.0 * ai.randomize ** tt.track.defaultSteeringRadius;
+                    if(ai.randomize > 0 || ai.enhance) {
+                        let ps = ai._getSortedCandidates(traj.track.cover, Bb, precision, Bb);
+                        Bb.lat = _getWeightedLat(ps, Bb, 4);
+                    }
                     tt.moves = dstate.moves;
 
-                    let Bt = tt.b2t(new P().mov(Bb), state.n);
+
+                    let Bt = tt.b2t(Bb, state.n);
                     let Ab = tt.t2b(tt.get(state.n), state.n);
-                    let nspeed = new P().mov(Bb).sub(tt.t2b(tt.c(state.n-1), state.n-1))//new P().mov(speed).n();
-                    let speed = new P().mov(Bb).sub(Ab);
-                    if(speed.len() < traj.track.defaultSteeringRadius * 0.5)
+                    let speed = distance(Bb, Ab);
+                    if(speed < traj.track.defaultSteeringRadius * 0.5)
                         continue;
-
                     tt.move(Bt, dstate.n, tt.moves, 0);
-
                     let result = tt.getMove(dstate.n).result;
                     let startingOffTrack = (result.parity - result.intersections.count) % 2 === 1;
                     if (!result.legal || (result.offTrackFraction > 0 && !startingOffTrack))
@@ -168,14 +178,11 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     result = tt.getMove(dstate.n+1).result;
                     if (result.offTrackFraction > 0)
                         continue;
-                    nspeed = nspeed.n()
                     let v = tt.track.points2D[(Bb.ix+1)%tt.track.points2D.length][Bb.iy];
-                    v = new P().mov(v).sub(Bb).n();
-                    dstate.bmoves[state.depth0 - state.depth] = Bb;//JSON.parse(JSON.stringify(Bb));
-                    v = 1.0; //nspeed.x*v.x + nspeed.y*v.y);
-                    v = v*(speed.len()/tt.track.defaultSteeringRadius + 0.5);
-                    if(state.depth0 === state.depth)
-                        dstate.v = speed.len();
+                    dstate.bmoves[state.n-state.n0] = copy(Bb);
+                    v = speed/tt.track.defaultSteeringRadius;
+                    if(state.n === state.n0)
+                        dstate.v = speed;
                     let ret = tt.scoreAt(dstate.n, undefined, target, ai.shorten);
                     let gScore = dstate.moves.length - 1;
                     dstate.gScore = gScore;
@@ -183,18 +190,16 @@ function batchAI(ai, traj, states, N, finalCallback) {
                     if(target < lat) {
                         lat -= len;
                     }
-                    // have we missed the shortened checkpoint line?
-                    // dstate.far = target - lat  < 0 && target - lat > len/2;
                     let rest = Math.max(0, (target - lat))/tt.track.defaultSteeringRadius;
                     let hScore = (Math.sqrt(v*v + 2*rest)-v);
                     let fScore = gScore + hScore;
                     if (ret.length > 0 && ret[0].point.t < 1 && state.finished === undefined) {
-                        fScore = gScore - 1 + ret[0].point.t;
+                        fScore = gScore - 1 + Math.random()*ai.randomize + ret[0].point.t;
                         dstate.finished = 2;
                     } else if (ret.length > 0 && ret[0].point.t < 1 && state.finished === 1) {
                         dstate.finished = 2;
                     } else {
-                        dstate.lats[dstate.n] = Bb.lat;
+                        dstate.target[dstate.n-dstate.n0+1] = Bb.lat;
                     }
                     dstate.val = fScore;
                     states.push(dstate);
@@ -209,6 +214,7 @@ function batchAI(ai, traj, states, N, finalCallback) {
         }
         if ((states.length > 0 || ai.lastState) && !end) {
             process(ai, traj, states, finalCallback)();
+            console.log("process");
         }
         else {
             finalCallback([ai.result.best.bmoves[0], ai.result.bestd, ai]);
@@ -218,29 +224,30 @@ function batchAI(ai, traj, states, N, finalCallback) {
 
 function process(ai, traj, states, finalCallback) {
     return function () {
-        setTimeout(batchAI(ai, traj, states,10, finalCallback), 0);
+        setTimeout(batchAI(ai, traj, states,16, finalCallback), 0);
     };
 }
 
-AI.prototype._goodMove = function(traj, n0, depth0, depth, finalCallback) {
+AI.prototype._goodMove = function(traj, n0, finalCallback) {
     if(this.thinking)
         return false;
     this.legal = 0;
-    let state0 = new State(n0, depth0, depth);
+    let state0 = new State();
     this.progress_count = 10000;
     this.progress_current = 0;
-    state0.moves = JSON.parse(JSON.stringify(traj.moves));
-    state0.n = traj.moves.length-1;
+    let moves = traj.moves.slice(Math.max(0,traj.moves.length-4), traj.moves.length);
+    state0.moves = copy(moves);
+    state0.n0 = moves.length - 1;
+    state0.n = moves.length - 1;
     state0.collision = traj.collision||0;
     state0.estimate = 100000;
     let len = traj.track.design.length();
     if(traj.target)
-        state0.lats = JSON.parse(JSON.stringify(traj.target));
+        state0.target = copy(traj.target.slice(Math.max(0,traj.moves.length-4), traj.moves.length));
     else {
-        state0.lats = [traj.track.design.startposAt(this.sid) / len];
-        traj.target = JSON.parse(JSON.stringify(state0.lats));
+        state0.target = [traj.track.design.startposAt(this.sid) / len];
+        traj.target = copy(state0.target);
     }
-    traj.target = state0.lats;
     let states = new TinyQueue([state0], function (a, b) { return a.val - b.val; });
     this.states = states;
     let lastBest = this.result ? this.result.best||undefined : undefined;
@@ -263,17 +270,9 @@ function cross(a, b) {
     return a.x*b.y-b.x*a.y;
 }
 
-function vector(a, b) {
-    return new P(b.x - a.x, b.y - a.y);
-}
-
-function online(a, u, t) {
-    return new P(a.x + t*u.x, a.y + t*u.y);
-}
-
 AI.prototype.think = function(ai, callback) {
     let n0 = ai.player.trajectory.moves.length;
-    return ai._goodMove(ai.player.trajectory, n0, ai.depth0, ai.depth0, callback);
+    return ai._goodMove(ai.player.trajectory, n0, callback);
 };
 
 AI.prototype.randomMove = function(callback) {

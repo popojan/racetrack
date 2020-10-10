@@ -24,10 +24,15 @@ function Trajectory (track) {
     this.kevinLine =  new Path();
     this.kevinLine.parseData("M0,0 S1,1,1,1");
     this.kevinLine.getIntersectionParams();
+    this.kevinLine2 =  new Path();
+    this.kevinLine2.parseData("M0,0 L1,1");
+    this.kevinLine2.getIntersectionParams();
     this.ts = [null, null, null, null, null, null, null, null, null, null,
         null, null, null, null, null, null, null, null, null, null];
     this.best = null;
     this.bestd = null;
+    this.u = new P();
+    this.v = new P();
     return this;
 }
 
@@ -90,10 +95,10 @@ Trajectory.prototype.evaluate = function(i, moves, fast) {
         let count = intersections.count;
         let points = intersections.points;
         points.sort(pointsComparator);
-        let parity = 0;
-        for (let j = 0; j < i; ++j) {
-            parity += this.getMove(j).result.intersections.count;
-        }
+        let parity = this.getMove(i-1).result.parity||0;
+        //for (let j = 0; j < i; ++j) {
+        //    parity += this.getMove(j).result.intersections.count;
+        //}
         let offTrackFraction = 0.0;
         let tsi = 0;
         if (parity % 2 === 1) {
@@ -256,17 +261,19 @@ Trajectory.prototype.asKevinLine = function(i) {
     this.kevinLine.segments[1].handles[1].point.y = B.y;
     return this.kevinLine;
 };
-
-Trajectory.prototype.scoreAt = function(i, kevinLine, at, id, shorten ) {
+Trajectory.prototype._scoreAt = function(finish, kevinLine, id) {
     let ret = [];
-    kevinLine = kevinLine || this.asKevinLine(i);
-    let finish = this.track.design.line(at, shorten);
     let inter = new Intersection("I", 20);
     inter.t = 2;
-    let sPath = "M" + finish.x1 + "," + finish.y1 + "L" + finish.x2 + "," + finish.y2;
-    let collisionPath = new Path();
-    collisionPath.parseData(sPath);
-    let intersections = intersectShapes(collisionPath, kevinLine, inter);
+    //let sPath = "M" + finish.x1 + "," + finish.y1 + "L" + finish.x2 + "," + finish.y2;
+    //let collisionPath = new Path();
+    //collisionPath.parseData(sPath);
+    let line = this.kevinLine2;
+    line.segments[0].handles[0].point.x = finish.x1;
+    line.segments[0].handles[0].point.y = finish.y1;
+    line.segments[1].handles[0].point.x = finish.x2;
+    line.segments[1].handles[0].point.y = finish.y2;
+    let intersections = intersectShapes(line, kevinLine, inter);
     for (let k = 0; k < intersections.count; ++k) {
         let p = intersections.points[k];
         let b = (finish.x2 - finish.x1);
@@ -276,6 +283,12 @@ Trajectory.prototype.scoreAt = function(i, kevinLine, at, id, shorten ) {
         let dir = a * h.x + b * h.y + c;
         ret.push({"point":p, "id": id, "direction": Math.sign(dir)});
     }
+    return ret;
+}
+Trajectory.prototype.scoreAt = function(i, kevinLine, at, id, shorten ) {
+    kevinLine = kevinLine || this.asKevinLine(i);
+    let finish = this.track.design.line(at, shorten);
+    let ret = this._scoreAt(finish, kevinLine, -1);
     ret.sort(function(a, b) { return a.point.t - b.point.t; })
     //if(ret.length > 0)
     //    console.log(JSON.stringify(ret));
@@ -287,21 +300,7 @@ Trajectory.prototype.finished = function(i, kevinLine) {
     kevinLine = kevinLine || this.asKevinLine(i);
     for(let j = 0; j < this.track.design.checks.length; ++j) {
         let finish = this.track.design.finishLine(j);
-        let inter = new Intersection("I", 20);
-        inter.t = 2;
-        let sPath = "M" + finish.x1 + "," + finish.y1 + "L" + finish.x2 + "," + finish.y2;
-        let collisionPath = new Path();
-        collisionPath.parseData(sPath);
-        let intersections = intersectShapes(collisionPath, kevinLine, inter);
-        for (let k = 0; k < intersections.count; ++k) {
-            let p = intersections.points[k];
-            let b = (finish.x2 - finish.x1);
-            let a = -(finish.y2 - finish.y1);
-            let c = - (a * finish.x1 + b * finish.y1)
-            let h = kevinLine.segments[1].handles[1].point;
-            let dir = a * h.x + b * h.y + c;
-            ret.push({"point":p, "id":j, "direction": Math.sign(dir)});
-        }
+        ret = ret.concat(this._scoreAt(finish, kevinLine, j));
     }
     ret.sort(function(a, b) { return a.point.t - b.point.t; })
     //if(ret.length > 0)
@@ -347,3 +346,16 @@ Trajectory.prototype.score = function(limit) {
     //console.log("noMoreMoves " + this.moves.length) ;
     return Infinity;
 }
+
+Trajectory.prototype.getCandidates = function(s1, r1, s2, r2, out1, out2) {
+    let d = distance(s2,s1) ;
+    let v = 0.5/d*Math.sqrt((-d+r1-r2)*(-d-r1+r2)*(-d+r1+r2)*(d+r1+r2));
+    let x = 0.5*(d*d -r2*r2+r1*r1)/d
+    this.u.mov(s2).sub(s1).n();
+    this.v.mov(this.u).p().mul(v);
+    this.u.mul(x);
+    out1.mov(s1).add(this.u);
+    out2.mov(out1);
+    out1.add(this.v);
+    out2.sub(this.v);
+};

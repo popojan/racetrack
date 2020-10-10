@@ -11,6 +11,8 @@ function View (canvasId) {
     this.eax = new P();
     this.ebx = new P();
     this.ecx = new P();
+    this.edx = new P();
+    this.tt = null;
 }
 
 View.prototype.getModelCoords = function(e, output) {
@@ -21,7 +23,7 @@ View.prototype.getModelCoords = function(e, output) {
 };
 
 View.prototype.clear = function() {
-    this.context.fillStyle = "#808080";
+    this.context.fillStyle = "#A0A0A0";
     this.context.fillRect(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
 };
 
@@ -72,29 +74,29 @@ View.prototype.drawMark = function(p) {
 };
 
 View.prototype.hatchCircle = function(t, S, R, lastMove, alpha, beta, color1, color2) {
-    let B = new P().mov(t.t2b(t.getMove(lastMove - 2).point, lastMove - 3));
-    let A = new P().mov(t.t2b(t.getMove(lastMove - 1).point, lastMove - 2));
-    let r11 = new P().mov(B).sub(A).len();
-    let minR = new P().mov(S).sub(A).len() - R;
-    let maxR = new P().mov(S).sub(A).len() + R;
+    this.ebx.mov(t.t2b(t.getMove(lastMove - 2).point, lastMove - 3));
+    this.eax.mov(t.t2b(t.getMove(lastMove - 1).point, lastMove - 2));
+    this.ebx.mov(this.eax);
+    this.v(this.ebx);
+    let r11 = distance(this.ebx, this.eax);
+    let RR = distance(S, this.eax);
     for(let k = 0; k <= 10; ++k) {
-        let r1 = (minR + k/10*(maxR-minR));
-        let pp = getCandidates(A, r1, S, R);
-        let e = new P().mov(pp[0]).sub(A);
-        let f = new P().mov(pp[1]).sub(A);
-        let o = new P().mov(A);
-        this.v(o);
+        let r1 = RR - R + k/5*R;
+        t.getCandidates(this.eax, r1, S, R, this.ecx, this.edx);
+        this.ecx.sub(this.eax);
+        this.edx.sub(this.eax);
         if(r1 >= r11) {
             this.context.strokeStyle = color2||color1;
-            this.context.globalAlpha = alpha;//beta + (1-beta) * alpha * (r1-r11)/(maxR-r11);
+            this.context.globalAlpha = alpha;
         }
         else {
             this.context.strokeStyle = color1;
-            this.context.globalAlpha = alpha;//beta + (1-beta) * alpha * (r11 - r1) / (r11 - minR);
+            this.context.globalAlpha = alpha;
         }
         if(r1 > 0) {
             this.context.beginPath();
-            this.context.arc(o.x, o.y, this.scale.x * r1, Math.atan2(e.y, e.x), Math.atan2(f.y, f.x));
+            this.context.arc(this.ebx.x, this.ebx.y,
+                this.scale.x * r1, Math.atan2(this.ecx.y, this.ecx.x), Math.atan2(this.edx.y, this.edx.x));
             this.context.stroke();
         }
     }
@@ -103,17 +105,16 @@ View.prototype.hatchCircle = function(t, S, R, lastMove, alpha, beta, color1, co
     //this.drawMark(B);
 
 };
-View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, globalAlpha) {
+View.prototype.drawTrajectory = function(t, i,  notAi, moveFrom, moveTo, globalAlpha) {
     let lastMove = t.moves.length;
     let player = model.race.players[i];
-    if(player && i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
+    if(player && notAi && i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
         lastMove += 1;
-        if(i === model.playerToMove/* && model.race.ais[model.playerToMove] === null*/) {
+        if(i === model.playerToMove && notAi/* && model.race.ais[model.playerToMove] === null*/) {
             let R = t.steeringRadius(lastMove - 1);
-            let S1 = new P().mov(t.t2b(player.trajectory.c(lastMove - 1), lastMove - 1));
-            let S2 = new P().mov(t.t2b(t.c()));
+            let S1 = this.tmp_p0.mov(t.t2b(player.trajectory.c(lastMove - 1), lastMove - 1));
+            let S2 = this.tmp_p1.mov(t.t2b(t.c()));
             this.drawCircle(S1, R, this.colors[i], 0.15, false);
-
             //this.drawArrow(B, pp, this.colors[i], false, true);
             let R2 = t.steeringRadius();
             this.drawCircle(S2, R2, this.colors[i], 0.25, false);
@@ -123,13 +124,16 @@ View.prototype.drawTrajectory = function(t, i, moveFrom, moveTo, globalAlpha) {
             //this.drawMark(pp[1]);
         }
     }
-    if(player && lastMove === 1) {
+    if(lastMove === 1) {
         let p = model.track.startPositions[player.sid];
-        this.drawArrow(new P().mov(p).sub(new P(p.vx, p.vy)), p, this.colors[i], true, false);
+        this.edx.x = p.vx;
+        this.edx.y = p.vy
+        this.drawArrow(this.ecx.mov(p).sub(this.edx), p, this.colors[i], true, false);
     }
-    for (let j = 0; j < lastMove; ++j) {
-        this.drawMove(t, j, j >= (moveFrom||(lastMove-1)) && j < (moveTo||lastMove), this.colors[i], globalAlpha)
-        globalAlpha *= 0.8;
+    for (let j = moveFrom||0; j < lastMove; ++j) {
+        let drawMove = j >= (moveFrom||(lastMove-1)) && j < (moveTo||lastMove);
+        this.drawMove(t, j, drawMove, this.colors[i], globalAlpha)
+        if(drawMove) globalAlpha *= 0.75;
         if(false) { //j >= (circlesFrom||Infinity) && j< (circlesFrom||-Infinity) ) { // DEBUG
             let R = t.steeringRadius(j);
             let S1 = t.t2b(player.trajectory.c(j), j);
@@ -142,7 +146,7 @@ View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
     this.drawTrack(model.track);
     for (const player of model.race.players) {
-        this.drawTrajectory(player.trajectory, player.i);
+        this.drawTrajectory(player.trajectory, player.i, true);
     }
 
     let ctx = this.context;
@@ -181,19 +185,22 @@ View.prototype.render = function(model) {
         ctx.fillStyle = this.colors[model.playerToMove];
         //ctx.strokeStyle = this.colors[1];
         ctx.fillRect(5, 5, Math.min(1.0, ai.progress_current / ai.progress_count) * (this.canvas.clientWidth-10), 15);
-        ctx.beginPath();
+        //ctx.beginPath();
 
         if(DEBUG || true && (ai.states.length > 0 || ai.lastState)) {
-            let traj = model.race.players[model.playerToMove].trajectory;
-            let tt = new Trajectory(model.track);
-            tt.moves = (ai.lastState ? ai.lastState : ai.states.peek()).moves;
+            this.tt.moves = (ai.lastState ? ai.lastState : ai.states.peek()).moves;
 
-            this.drawTrajectory(tt, Infinity, traj.moves.length, tt.moves.length-1, 1.0);
+            this.drawTrajectory(this.tt, model.playerToMove, false, 3, this.tt.moves.length-1, 1.0);
             ctx.globalAlpha = 0.1;
             let  at = ai.currentTarget;
             let line = model.track.design.line(at, ai.shorten);
-            let A = this.v(new P(line.x1, line.y1));
-            let B = this.v(new P(line.x2, line.y2));
+            this.eax.x = line.x1;
+            this.eax.y = line.y1;
+            this.ebx.x = line.x2;
+            this.ebx.y = line.y2;
+
+            let A = this.v(this.eax);
+            let B = this.v(this.ebx);
             ctx.lineWidth = 1;
             ctx.strokeStyle = ctx.fillStyle;
             ctx.beginPath();
@@ -212,7 +219,7 @@ View.prototype.drawCircle = function(c, R, color, op, filled) {
     let ctx = this.context;
     ctx.beginPath();
     ctx.globalAlpha = op;
-    let cv = this.v(new P().mov(c));
+    let cv = this.v(this.eax.mov(c));
     ctx.arc(cv.x, cv.y, R*this.scale.x, 0, 2*Math.PI);
     //ctx.closePath();
     if(filled){
@@ -280,12 +287,15 @@ View.prototype.drawTrack = function(track) {
         const m = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix();
         const t = m.translate(this.translation.x, this.translation.y).scale(this.scale.x, this.scale.y);
         this.trackPath.addPath(p0, t);
+        this.tt = new Trajectory(track);
         //this.rasterizedTrack = ctx.getImageData(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
     }
-    this.drawGrid(200, 20);
+
     ctx.fillStyle = "#ffffff";
-    ctx.globalAlpha = 0.75;
     ctx.fill(this.trackPath);
+    //this.drawGrid(200, 20);
+    //ctx.globalAlpha = 0.75;
+    //ctx.fill(this.trackPath)
     ctx.globalAlpha = 1.0;
     ctx.lineWidth = 1;
     let solid = ctx.getLineDash();
@@ -303,25 +313,17 @@ View.prototype.drawTrack = function(track) {
     let tx = function(x) { return x* _this.scale.x + _this.translation.x; }
     let ty = function(y) { return y* _this.scale.y + _this.translation.y; }
     ctx.setLineDash([1,2]);
+    ctx.lineWidth = 1;
     for(let i = 0; i < track.design.gridcount; ++i) {
         let p = track.design.startpos(i);
         let vx = p.vx*6;
         let vy = p.vy*6;
-        let a = new P(tx(p.x - 3*vx/2 + vy), ty(p.y - 3*vy/2 - vx));
-        let d = new P(tx(p.x - 3*vx/2 - vy), ty(p.y - 3*vy/2 + vx));
-        let b = new P(tx(p.x + vx/2 + vy), ty(p.y + vy/2 - vx));
-        let c = new P(tx(p.x + vx/2 - vy), ty(p.y + vy/2 + vx));
-        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.lineTo(c.x, c.y);
-        ctx.lineTo(d.x, d.y);
-
+        ctx.moveTo(tx(p.x - 3*vx/2 + vy), ty(p.y - 3*vy/2 - vx));
+        ctx.lineTo(tx(p.x + vx/2 + vy),   ty(p.y + vy/2 - vx));
+        ctx.lineTo(tx(p.x + vx/2 - vy),   ty(p.y + vy/2 + vx));
+        ctx.lineTo(tx(p.x - 3*vx/2 - vy), ty(p.y - 3*vy/2 + vx));
         ctx.stroke();
-        /*this.drawArrow(
-            new P().mov(p).sub(new P(p.vx, p.vy)),
-            p,"#808080", false, false);*/
     }
     ctx.setLineDash(solid);
 
@@ -336,14 +338,14 @@ View.prototype.drawTrack = function(track) {
     //console.log(track.design.optimalPath.length, track.design.optimalPath[0].points.length);
     if(DEBUG && track.design.optimalPath) {
         for(let j = 0; j < track.design.optimalPath.length; ++j) {
-            let p = this.v(new P().mov(track.design.optimalPath[j].points[0]));
+            let p = this.v(this.eax.mov(track.design.optimalPath[j].points[0]));
             ctx.strokeStyle = "#eb0000";
             ctx.globalAlpha = 0.9;
             ctx.lineWidth = 4;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             for (let i = 1; i < track.design.optimalPath[j].points.length; ++i) {
-                let p = this.v(new P().mov(track.design.optimalPath[j].points[i]));
+                let p = this.v(this.eax.mov(track.design.optimalPath[j].points[i]));
                 ctx.lineTo(p.x, p.y);
             }
             ctx.closePath();

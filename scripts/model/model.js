@@ -22,7 +22,7 @@ Model.prototype.startRace = function (trackDesign, players) {
     let steeringRadius = this.track.defaultSteeringRadius;
     let collisionRadius = this.track.defaultCollisionRadius;
     for(let i = 0; i < this.track.design.gridcount; ++i) {
-        let who = players[i] === undefined ? "0" : players[i];
+        let who = players[i]||"0";
         if(who === "0")
             continue;
         let player = new Player("player" + i, steeringRadius, collisionRadius, i);

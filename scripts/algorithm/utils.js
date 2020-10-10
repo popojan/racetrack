@@ -1,5 +1,7 @@
 Raphael = new (function(){})();
 
+function copy(x) { return JSON.parse(JSON.stringify(x)); }
+
 function bezierDerivative(t, P0, P1, P2, output) {
     return output.mov(P1.sub(P0).mul(2*(1-t))).add(P2.sub(P1).mul(2*t));
 }
