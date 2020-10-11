@@ -43,8 +43,8 @@ Avoid.prototype.adjust =  function (players, lastPlanned) {
         let nn = result["argument"];
         ret = [];
         for (let i = 0; i <= lastPlanned; ++i) {
-            players[i].adjustedMove.x = nn[i * 2];
-            players[i].adjustedMove.y = nn[i * 2 + 1];
+            players[i].adjustedMove.x = nn[i * 2] || X0[i * 2];
+            players[i].adjustedMove.y = nn[i * 2 + 1] || X0[i * 2 + 1];
         }
     }
     else {

@@ -44,7 +44,6 @@ AI.prototype._getSortedCandidates = function(cover, cb, R, closeTo, mult) {
     this.circle.r = closeTo ? R * mult : R;
     this.circle.rPow2 = this.circle.r*this.circle.r;
     let ps = cover.query(this.circle);
-    console.log(JSON.stringify(this.circle));
     if(ps.length < 1)
         return [];
     if(!closeTo)
@@ -125,12 +124,14 @@ function batchAI(ai, traj, states, N, finalCallback) {
             }
             if (!ai.lastState && state.finished > 1) {
                 end = true;
+                /*
                 let tt = ai.tt;
                 tt.moves = copy(traj.moves);
                 tt.moves = tt.moves.concat(state.moves.slice(traj.moves.length, state.moves.length));
                 let finalScore = tt.score();
                 if(finalScore < Infinity)
                     console.log("FINAL SCORE = ", finalScore);
+                */
                 ai.result.best = state;
                 ai.result.bestd = state.val;
                 traj.target = copy(state.target);
@@ -214,7 +215,6 @@ function batchAI(ai, traj, states, N, finalCallback) {
         }
         if ((states.length > 0 || ai.lastState) && !end) {
             process(ai, traj, states, finalCallback)();
-            console.log("process");
         }
         else {
             finalCallback([ai.result.best.bmoves[0], ai.result.bestd, ai]);

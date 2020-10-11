@@ -320,7 +320,6 @@ Trajectory.prototype.score = function(limit) {
             continue;
         }
         if (move.result.offTrackFraction > 0.0) {
-            console.log("offTrack");
             return Infinity;
         }
         for (let j = 0; limit >= Infinity && j < move.result.checkpoints.length; ++j) {
@@ -328,7 +327,6 @@ Trajectory.prototype.score = function(limit) {
             if (check.id === nextCheckpoint) {
 
                 if (check.direction <= 0) {
-                    console.log("badDir");
                     return Infinity;
                 }
                 //console.log("checkpoint");

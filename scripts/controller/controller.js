@@ -44,7 +44,6 @@ Controller.prototype.up = function (event) {
         || !this.humanDown) return;
     this.humanDown = false;
     this.view.getModelCoords(event, this.eax);
-    console.log("Human played");
     this.model.finalizeMove(this.eax);
 };
 
