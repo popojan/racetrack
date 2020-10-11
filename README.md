@@ -1,13 +1,13 @@
 # racetrack
 * another take on turn based racing
 * bezier racetrack aka **formulky**, from scratch
-* deployed at [bangneki.com/racetrack](https://bangneki.com/racetrack/)
+* deployed at [bangneki.com](https://bangneki.com/)
 
 ## Changelog
 
 ### 2020/10/10
 * naive A-star like AI bots with limited look-ahead and precision
-* grid configuration e.g. [?players=111111101H](https://bangneki.com/racetrack/?players=111111101H)
+* grid configuration e.g. [?players=111111101H](https://bangneki.com/?players=111111101H)
   * 0 Empty
   * 1 AI (bot)
   * H Human (player)
