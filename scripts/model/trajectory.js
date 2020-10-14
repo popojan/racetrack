@@ -31,6 +31,7 @@ function Trajectory (track) {
         null, null, null, null, null, null, null, null, null, null];
     this.best = null;
     this.bestd = null;
+    this.target = undefined;
     this.u = new P();
     this.v = new P();
     return this;
@@ -118,7 +119,7 @@ Trajectory.prototype.evaluate = function(i, moves, fast) {
         }
         result.offTrackFraction = offTrackFraction;
         result.intersections = intersections;
-        result.parity = parity;
+        result.parity = parity + count;
         if (fast === undefined || fast < 1) {
             result.checkpoints = this.finished(i, kevinLine);
         }

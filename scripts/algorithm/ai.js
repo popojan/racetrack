@@ -77,8 +77,8 @@ AI.prototype.getSortedCandidates = function(traj, cover, i, precision, pp, mult)
         }
         if(this.enhance && (R-r/R <= precision)) {
             let q = copy(psi);
-            q.x = q.data.x = cb.x + this.eax.x * 0.99 * R;
-            q.y = q.data.y = cb.y + this.eax.y * 0.99 * R;
+            q.x = q.data.x = cb.x + this.eax.x * 0.999 * R;
+            q.y = q.data.y = cb.y + this.eax.y * 0.999 * R;
             ret.push(q);
         }
         if(r/R >= this.annulus)
@@ -224,7 +224,7 @@ function batchAI(ai, traj, states, N, finalCallback) {
 
 function process(ai, traj, states, finalCallback) {
     return function () {
-        setTimeout(batchAI(ai, traj, states,16, finalCallback), 0);
+        setTimeout(batchAI(ai, traj, states,12, finalCallback), 0);
     };
 }
 

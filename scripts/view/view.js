@@ -13,6 +13,7 @@ function View (canvasId) {
     this.ecx = new P();
     this.edx = new P();
     this.tt = null;
+    this.motorSound = undefined;
 }
 
 View.prototype.getModelCoords = function(e, output) {
@@ -51,15 +52,19 @@ View.prototype.drawGrid = function(minorCount, majorCount) {
 };
 
 View.prototype.resize = function (width, height, bbox) {
+    this.pixelRatio = window.devicePixelRatio||1;
     let scale = Math.min(width / bbox.width, height / bbox.height);
     this.scale = new P(scale, scale);
     this.translation = new P(
         -this.scale.x * bbox.x + (width - this.scale.x * bbox.width)/2,
         -this.scale.y * bbox.y + (height - this.scale.y * bbox.height)/2
     );
-    this.canvas.width = width;
-    this.canvas.height = height;
+    this.canvas.width = width * window.devicePixelRatio;
+    this.canvas.height = height * window.devicePixelRatio;
+    this.canvas.style.width = width;
+    this.canvas.style.height = height;
     this.trackPath = undefined;
+
     this.rasterizedTrack = undefined;
 };
 
@@ -132,7 +137,11 @@ View.prototype.drawTrajectory = function(t, i,  notAi, moveFrom, moveTo, globalA
     }
     for (let j = moveFrom||0; j < lastMove; ++j) {
         let drawMove = j >= (moveFrom||(lastMove-1)) && j < (moveTo||lastMove);
-        this.drawMove(t, j, drawMove, this.colors[i], globalAlpha)
+        let speed = this.drawMove(t, j, drawMove, this.colors[i], globalAlpha, model)
+        if(speed && this.motorSound !== undefined) {
+            this.motorSound.setSpeed(i, speed.speed);
+            this.motorSound.setBalance(i, speed.lvolume, speed.rvolume);
+        }
         if(drawMove) globalAlpha *= 0.75;
         if(false) { //j >= (circlesFrom||Infinity) && j< (circlesFrom||-Infinity) ) { // DEBUG
             let R = t.steeringRadius(j);
@@ -144,6 +153,9 @@ View.prototype.drawTrajectory = function(t, i,  notAi, moveFrom, moveTo, globalA
 
 View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
+    if(this.motorSound === undefined) {
+        this.motorSound = initSound(window, model.race.players.length);
+    }
     this.drawTrack(model.track);
     for (const player of model.race.players) {
         this.drawTrajectory(player.trajectory, player.i, true);
@@ -235,7 +247,24 @@ View.prototype.drawCircle = function(c, R, color, op, filled) {
     ctx.closePath();
 };
 
-View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color, globalAlpha) {
+function speed2rpm(speed) {
+    speed *= 70;
+    let speeds = [0, 33.1, 64.9, 88.6, 112, 224];
+    //let rpms = [[200, 7786], [4687, 7069], [4980, 6794], [5108, 6456], [5255, 9735]];
+    let rpms = [[200, 7786], [4687, 7969], [4980, 8600], [5108, 9000], [5255, 12735]];
+    for(let i = 0; i < speeds.length; ++i) {
+        if(speed < speeds[i]) {
+            let a = rpms[i - 1][0];
+            let b = rpms[i - 1][1];
+            return (a + (b-a) * (speed - speeds[i-1])/(speeds[i]-speeds[i-1]))/2500;
+        }
+    }
+    let a = rpms[rpms.length-1][0];
+    let b = rpms[rpms.length-1][1];
+    return (a + (b-a)*(speed - speeds[speeds.length-2])/(speeds[speeds.length-1]-speeds[speeds.length-2]))/2500;
+
+}
+View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color, globalAlpha, model) {
     globalAlpha = globalAlpha||1.0;
     let t0 = trajectory.animationMoveFraction;
     let ctx = this.context;
@@ -265,10 +294,42 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color, glob
         this.tmp_p1.mov(cp);
         this.drawArrow(this.tmp_p0, this.tmp_p1, color, true, true);
     }
+    let speedOfSound = undefined;
     if(trajectory.animationMove ===  moveNumber && moveNumber > 0) {
         getTangentPoint(trajectory.animationMoveFraction,
             this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0, this.tmp_p1);
         this.drawArrow(this.tmp_p0, this.tmp_p1, color, true, false);
+
+
+
+        let pv0 = bezierPoint(trajectory.animationMoveFraction,
+            this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0);
+        let pv1 = bezierPoint(trajectory.animationMoveFraction - 0.01,
+            this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p1);
+        let speed = distance(pv0, pv1);
+        //this.eax.x = 0.33 * this.context.canvas.clientWidth;
+        //this.eax.y = this.context.canvas.clientHeight/2;
+
+        let ptm = model.race.players[model.playerToMove];
+        let move = ptm.trajectory.bez(ptm.trajectory.animationMove);
+        let b0 = bezierPoint(ptm.trajectory.animationMoveFraction-0.01,
+            this.eax.mov(move[0]), this.ebx.mov(move[1]), this.ecx.mov(move[2]), this.edx);
+        let b1 = bezierPoint(ptm.trajectory.animationMoveFraction,
+            this.eax.mov(move[0]), this.ebx.mov(move[1]), this.ecx.mov(move[2]), this.tmp_p1);
+
+        let len1 = distance(b0, b1);
+        let len2 = distance(pv0, b1);
+        let cos1 = ((b1.x-b0.x)* (pv0.x-b1.x) + (b1.y-b0.y)* (pv0.y-b1.y))/len1/len2;
+        let cos2 = ((b0.y-b1.y)* (pv0.x-b1.x) + (b1.x-b0.x)* (pv0.y-b1.y))/len1/len2;
+        if(len2 === 0)
+            cos1 = cos2 = 0.0;
+        //let direction = (b0.y-b1.y)*this.tmp_p1.x + (b1.x - b0.x)*this.tmp_p1.y - (b0.y-b1.y)*b0.x - (b1.x - b0.x)*b0.y;
+        let attenuation = 100*100/Math.pow((100+Math.abs(len2)),2);
+        speedOfSound = {speed: speed2rpm(speed),
+            lvolume: Math.abs(1-cos1) * attenuation,
+            rvolume: Math.abs(1-cos2)*attenuation
+        };
+        console.log(cos1,cos2, attenuation);
     }
     if(drawMove && moveNumber > 0) {
         getTangentPoint(1.0,
@@ -276,23 +337,35 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color, glob
         this.drawArrow(this.tmp_p0, this.tmp_p1, color, false, false);
     }
     ctx.globalAlpha = 1.0;
+    return speedOfSound;
 };
 
 View.prototype.drawTrack = function(track) {
     let ctx = this.context;
+    ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
     this.clear();
     if(this.trackPath === undefined) {
-        this.trackPath = new Path2D();
-        const p0 = new Path2D(track.renderPath);
-        const m = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix();
-        const t = m.translate(this.translation.x, this.translation.y).scale(this.scale.x, this.scale.y);
-        this.trackPath.addPath(p0, t);
+
+        this.trackPath = parseSvgPathData(track.renderPath,
+            parseSvgPathData.canvasIfc,
+            new Path2D());
+        //console.log(JSON.stringify());
+        //this.trackPath = new Path2D(track.renderPath);
+        //const p0 = new Path2D(track.renderPath);
+        //const m = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix();
+        //const t = m.translate(this.translation.x, this.translation.y).scale(this.scale.x, this.scale.y);
+        //this.trackPath.addPath(p0, t);
         this.tt = new Trajectory(track);
         //this.rasterizedTrack = ctx.getImageData(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
     }
 
     ctx.fillStyle = "#ffffff";
+    //let oldTransform = ctx.resetTransform();
+    ctx.setTransform(this.scale.x * this.pixelRatio, 0, 0, this.scale.y * this.pixelRatio,
+        this.translation.x* this.pixelRatio, this.translation.y * this.pixelRatio);
     ctx.fill(this.trackPath);
+    ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+    //ctx.resetTransform();
     //this.drawGrid(200, 20);
     //ctx.globalAlpha = 0.75;
     //ctx.fill(this.trackPath)

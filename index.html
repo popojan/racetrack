@@ -2,9 +2,11 @@
 <html style="width:100%;height:100%;padding:0;margin:0;border:0;">
 <head>
     <meta charset="UTF-8">
+    <link rel="canonical" href="https://formulky.cz/" />
+    <link rel="icon" type="image/png" href="favicon.png" />
 </head>
 <body id="body" style="width:100%;height:100%;padding:0;margin:0;border:0;overflow:hidden;">
-<div style="padding:0;margin:0;border:0;height:100%;text-align:center;">
+<div id="wrapper" style="padding:0;margin:0;border:0;height:100%;width:100%;text-align:center;">
     <canvas id="canvas" style="display:inline-block;width:100%;height:100%;margin:0px;border:1px solid #000000;padding:0;">
     </canvas>
 </div>
@@ -18,7 +20,9 @@
 <script src="scripts/model/physics.js"></script>
 <script src="scripts/model/trajectory.js"></script>
 <script src="scripts/view/view.js"></script>
+<script src="scripts/view/sound.js"></script>
 <script src="scripts/controller/controller.js"></script>
+<script src="scripts/algorithm/parseSvgPathData.js"></script>
 <script src="scripts/algorithm/quadtree.js"></script>
 <script src="scripts/algorithm/tinyqueue.min.js"></script>
 <script src="scripts/algorithm/ai.js"></script>
@@ -42,7 +46,7 @@
     //console.log(JSON.stringify(players));
     model.startRace(track, players);
 
-    controller.resizePaper();
+    document.onreadystatechange = function() { controller.resizePaper() };
 
     model.startAnimation();
 </script>
