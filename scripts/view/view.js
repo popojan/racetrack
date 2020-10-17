@@ -138,9 +138,10 @@ View.prototype.drawTrajectory = function(t, i,  notAi, moveFrom, moveTo, globalA
     for (let j = moveFrom||0; j < lastMove; ++j) {
         let drawMove = j >= (moveFrom||(lastMove-1)) && j < (moveTo||lastMove);
         let speed = this.drawMove(t, j, drawMove, this.colors[i], globalAlpha, model)
-        if(speed && this.motorSound !== undefined) {
-            this.motorSound.setSpeed(i, speed.speed);
-            this.motorSound.setBalance(i, speed.lvolume, speed.rvolume);
+        if(speed !== undefined && this.soundEngine !== undefined) {
+            //this.soundEngine.setListenerPosition(0, 0, speed.dx, speed.dy);
+            this.soundEngine.setRPM(i, speed.rpm);
+            this.soundEngine.setPosition(i, speed.x, speed.y);
         }
         if(drawMove) globalAlpha *= 0.75;
         if(false) { //j >= (circlesFrom||Infinity) && j< (circlesFrom||-Infinity) ) { // DEBUG
@@ -153,8 +154,8 @@ View.prototype.drawTrajectory = function(t, i,  notAi, moveFrom, moveTo, globalA
 
 View.prototype.render = function(model) {
     //if(!model.track || !model.scale) return;
-    if(this.motorSound === undefined) {
-        this.motorSound = initSound(window, model.race.players.length);
+    if(this.soundEngine === undefined) {
+        this.soundEngine = initSound(window, model.race.players.length);
     }
     this.drawTrack(model.track);
     for (const player of model.race.players) {
@@ -295,6 +296,11 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color, glob
         this.drawArrow(this.tmp_p0, this.tmp_p1, color, true, true);
     }
     let speedOfSound = undefined;
+    if(drawMove && moveNumber > 0) {
+        getTangentPoint(1.0,
+            this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0, this.tmp_p1);
+        this.drawArrow(this.tmp_p0, this.tmp_p1, color, false, false);
+    }
     if(trajectory.animationMove ===  moveNumber && moveNumber > 0) {
         getTangentPoint(trajectory.animationMoveFraction,
             this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0, this.tmp_p1);
@@ -306,35 +312,20 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color, glob
             this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0);
         let pv1 = bezierPoint(trajectory.animationMoveFraction - 0.01,
             this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p1);
+        let vx = pv1.x - pv0.x;
+        let vy = pv1.y - pv0.y;
         let speed = distance(pv0, pv1);
         //this.eax.x = 0.33 * this.context.canvas.clientWidth;
         //this.eax.y = this.context.canvas.clientHeight/2;
 
         let ptm = model.race.players[model.playerToMove];
-        let move = ptm.trajectory.bez(ptm.trajectory.animationMove);
+        let move = ptm.trajectory.bez(Math.min(ptm.trajectory.moves.length-1, ptm.trajectory.animationMove));
         let b0 = bezierPoint(ptm.trajectory.animationMoveFraction-0.01,
             this.eax.mov(move[0]), this.ebx.mov(move[1]), this.ecx.mov(move[2]), this.edx);
         let b1 = bezierPoint(ptm.trajectory.animationMoveFraction,
             this.eax.mov(move[0]), this.ebx.mov(move[1]), this.ecx.mov(move[2]), this.tmp_p1);
 
-        let len1 = distance(b0, b1);
-        let len2 = distance(pv0, b1);
-        let cos1 = ((b1.x-b0.x)* (pv0.x-b1.x) + (b1.y-b0.y)* (pv0.y-b1.y))/len1/len2;
-        let cos2 = ((b0.y-b1.y)* (pv0.x-b1.x) + (b1.x-b0.x)* (pv0.y-b1.y))/len1/len2;
-        if(len2 === 0)
-            cos1 = cos2 = 0.0;
-        //let direction = (b0.y-b1.y)*this.tmp_p1.x + (b1.x - b0.x)*this.tmp_p1.y - (b0.y-b1.y)*b0.x - (b1.x - b0.x)*b0.y;
-        let attenuation = 100*100/Math.pow((100+Math.abs(len2)),2);
-        speedOfSound = {speed: speed2rpm(speed),
-            lvolume: Math.abs(1-cos1) * attenuation,
-            rvolume: Math.abs(1-cos2)*attenuation
-        };
-        console.log(cos1,cos2, attenuation);
-    }
-    if(drawMove && moveNumber > 0) {
-        getTangentPoint(1.0,
-            this.eax.mov(ret[0]), this.ebx.mov(ret[1]), this.ecx.mov(ret[2]), this.tmp_p0, this.tmp_p1);
-        this.drawArrow(this.tmp_p0, this.tmp_p1, color, false, false);
+        speedOfSound = {rpm: speed2rpm(speed), x: pv0.x - b1.x, y: pv0.y - b1.y, dx: b1.x - b0.x, dy: b1.y-b0.y};
     }
     ctx.globalAlpha = 1.0;
     return speedOfSound;

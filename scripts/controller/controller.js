@@ -24,7 +24,7 @@ Controller.prototype.move = function (event) {
 };
 
 Controller.prototype.down = function (event) {
-    this.view.motorSound.context.resume();
+    if(this.view.soundEngine) this.view.soundEngine.context.resume();
     if(!this.ready || this.model.race.players.length < 1
         || this.model.race.ais[this.model.playerToMove] !== null) return;
     this.humanDown = true;

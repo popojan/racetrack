@@ -1,90 +1,92 @@
-let MotorSound = function (context, generator, count) {
-    this.currentFrame = [];
+let AudioEngine = function(context, count) {
     this.context = context;
-    this.speed = [];
-    this.isPlaying = false;
-    this.generator = generator;
-    //context.createPanner();
-    // scriptNode to change sound wave on the run
-    this.scriptNode = context.createScriptProcessor(1024);
-    this.scriptNode.onaudioprocess = this.process.bind(this);
-
-    // gainNode for volume control
     this.gainNode = context.createGain();
-    this.gainNode.gain.value = 0.5;
-    this.scriptNode.connect(this.gainNode);
-    this.lvolume = [];
-    this.rvolume = [];
-    this.setVolume(0.1);
-    this.regenerate(count);
-
-};
-
-MotorSound.prototype.start = function () {
-    this.gainNode.connect(this.context.destination);
-};
-
-MotorSound.prototype.stop = function () {
-    this.gainNode.disconnect(this.context.destination);
-};
-
-MotorSound.prototype.regenerate = function (count) {
-    this.data = [];
-    this.speed = [];
-    this.currentFrame = [];
+    this.gainNode.gain.value = 0.1;
+    this.motorSounds = [];
+    this.generator = new LinearGenerator();
     for(let i = 0; i < count; ++i) {
-        this.data.push(this.generator.generate());
-        this.speed.push(0.6);
-        this.currentFrame.push(0);
-        this.lvolume.push(1.0);
-        this.rvolume.push(1.0);
+        this.motorSounds.push(new MotorSound(context, this.generator, this.gainNode));
     }
-};
+}
 
-MotorSound.prototype.setVolume = function (volume) {
+AudioEngine.prototype.setVolume = function (volume) {
     this.gainNode.gain.value = volume;
 };
 
-MotorSound.prototype.setBalance = function (j, leftVolume, rightVolume) {
-    this.lvolume[j] = leftVolume;
-    this.rvolume[j] = rightVolume;
+AudioEngine.prototype.start = function () {
+    this.gainNode.connect(this.context.destination);
 };
 
-MotorSound.prototype.setGenerator = function (generator) {
+AudioEngine.prototype.stop = function () {
+    this.gainNode.disconnect(this.context.destination);
+};
+
+AudioEngine.prototype.setRPM = function (i, rpm) {
+    this.motorSounds[i].setRPM(rpm);
+};
+
+AudioEngine.prototype.setPosition = function (i, x, y, dx, dy) {
+    this.motorSounds[i].setPosition(x, y, dx, dy);
+};
+
+AudioEngine.prototype.setListenerPosition = function (x, y, dx, dy) {
+    if(this.context.listener.orientationX) {
+        this.context.listener.orientationX.setValueAtTime(dx, this.context.currentTime);
+        this.context.listener.orientationZ.setValueAtTime(dy, this.context.currentTime);
+
+    }
+    if(this.context.listener.positionX) {
+        this.context.listener.forwardX.setValueAtTime(dx, this.context.currentTime);
+        this.context.listener.forwardZ.setValueAtTime(dy, this.context.currentTime);
+    }
+};
+
+let MotorSound = function (context, generator, targetNode) {
+    this.currentFrame = 0;
+    this.context = context;
+    this.speed = 0.5;
     this.generator = generator;
+    this.scriptNode = context.createScriptProcessor(1024);
+    this.scriptNode.onaudioprocess = this.process.bind(this);
+    this.panner = context.createPanner();
+    this.panner.refDistance = 30;
+    this.panner.distanceModel = "inverse";
+    this.panner.rolloffFactor = 1;
+    this.scriptNode.connect(this.panner);
+    this.panner.connect(targetNode);
     this.regenerate();
+
 };
 
-MotorSound.prototype.setSpeed = function (i, speed) {
-    this.speed[i] = speed;
+MotorSound.prototype.regenerate = function () {
+    this.speed = 0.6;
+    this.currentFrame = 0;
+    this.data = this.generator.generate();
+};
+
+MotorSound.prototype.setRPM = function (rpm) {
+    this.speed = rpm;
+};
+
+MotorSound.prototype.setPosition = function (x, y, dx, dy) {
+    this.panner.positionX.linearRampToValueAtTime(x, this.context.currentTime);
+    this.panner.positionZ.linearRampToValueAtTime(y, this.context.currentTime);
 };
 
 MotorSound.prototype.process = function (event) {
-    // this is the output buffer we can fill with new data
     let lchannel = event.outputBuffer.getChannelData(0);
     let rchannel = event.outputBuffer.getChannelData(1);
     let index;
 
     for (let i = 0; i < lchannel.length; ++i) {
-        let lval = 0.0;
-        let rval = 0.0;
-        for(let j = 0; j < this.data.length; ++j) {
-            // skip more data frames on higher speed
-            this.currentFrame[j] += this.speed[j];
-            index = Math.floor(this.currentFrame[j]) % this.data[j].length;
-            let dat = this.data[j][index];
-            lval += this.lvolume[j] * dat;
-            rval += this.rvolume[j] * dat;
-        }
-        lchannel[i] = lval;
-        rchannel[i] = rval;
+        this.currentFrame += this.speed;
+        index = Math.floor(this.currentFrame) % this.data.length;
+        let dat = this.data[index];
+        lchannel[i] = dat;
+        rchannel[i] = dat;
     }
-    for(let j = 0; j < this.data.length; ++j) {
-        this.currentFrame[j] %= this.data[j].length;
-    }
+    this.currentFrame %= this.data.length;
 };
-
-
 
 let LinearGenerator = function () {
     this.dataLength = 1024;
@@ -119,50 +121,18 @@ LinearGenerator.prototype.generate = function () {
     return data;
 };
 
-
-
-let NoiseGenerator = function () {
-    this.dataLength = 4096;
-    this.linearLength = 30;
-    this.smoothness = 3;
-};
-
-NoiseGenerator.prototype.generate = function () {
-    let data = [];
-    let lastValue = 0.5;
-    data.push(lastValue);
-
-    for (let i = 1; i <= this.dataLength-this.linearLength; i++) {
-        lastValue += (Math.random() - 0.5) / this.smoothness;
-        lastValue = Math.min(1, lastValue);
-        lastValue = Math.max(-1, lastValue);
-        data.push(lastValue);
-    }
-
-    // interpolate the last view values
-    let step = (0.5 - lastValue) / this.linearLength;
-    for (let j = 0; j < this.linearLength; j++) {
-        data.push(lastValue + step * j);
-    }
-
-    data.push(0.5);
-    return data;
-};
-
 function initSound(window, count) {
     let AudioContext = window.AudioContext || window.webkitAudioContext;
     if(AudioContext === undefined)
         return undefined;
     let context = new AudioContext();
     let generator = new LinearGenerator();
-    let motorSound = new MotorSound(context, generator, count);
+    let soundEngine = new AudioEngine(context, count);
     window.onload = function () {
         function regenerateSound() {
-            motorSound.regenerate(count);
-            motorSound.start();
+            soundEngine.start();
         }
-
         regenerateSound();
     };
-    return motorSound;
+    return soundEngine;
 }

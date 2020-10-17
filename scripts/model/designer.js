@@ -194,6 +194,8 @@ function randomDesign(N, w, h) {
                     }*/
             }
             }
+            //design.close();
+    //design.grid(10, 100, 20);
     return design;
 };
 Designer.prototype.bbup = function(x, y) {
