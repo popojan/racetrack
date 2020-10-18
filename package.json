@@ -2,10 +2,11 @@
   "name": "racetrack",
   "version": "0.0.0",
   "dependencies": {
+    "js-quadtree": "^3.3.3",
     "kld-intersections": "^0.7.0",
     "optimization-js": "^1.5.0",
+    "parse-svg-path-data": "^0.2.1",
     "raphael": "^2.3.0",
-    "tinyqueue": "^2.0.3",
-    "js-quadtree": "^3.3.3"
+    "tinyqueue": "^2.0.3"
   }
 }
