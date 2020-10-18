@@ -7,7 +7,7 @@
 </head>
 <body id="body" style="width:100%;height:100%;padding:0;margin:0;border:0;overflow:hidden;">
 <div id="wrapper" style="padding:0;margin:0;border:0;height:100%;width:100%;text-align:center;">
-    <canvas id="canvas" style="display:inline-block;width:100%;height:100%;margin:0px;border:1px solid #000000;padding:0;">
+    <canvas id="canvas" style="display:inline-block;width:100%;height:100%;margin:0px;border:0px solid #000000;padding:0;box-sizing: border-box;">
     </canvas>
 </div>
 
@@ -37,8 +37,7 @@
     let view       = new View("canvas");
     let model      = new Model().updates(view);
     let controller = new Controller("body").manipulates(model, view);
-    //let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 -20 15 P 900 F 100";
-    let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 S 10 C -70 80 C 250 60 C -200 40 S 80 C -80 50 S 20 C 115 50 S 170 z G 10 -20 15 P 900 F 160";
+    let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 -20 15 P 900 F 100";
     const urlParams = new URLSearchParams(window.location.search);
     track = (urlParams.get("track")||track);
     let players = (urlParams.get("players")||"1H").split("");

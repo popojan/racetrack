@@ -3,8 +3,10 @@ function View (canvasId) {
     this.canvas = document.getElementById(canvasId);
     this.context = this.canvas.getContext("2d");
     this.colors = ["#eb0000", "#000000", "#0000ff", "#eb8000", "#808000", "#FF00FF", "#008080", "#0080FF", "#eb0000", "#800000"];
-    this.translation = null;
-    this.scale = null;
+    this.translation = new P();
+    this.translation0 = new P();
+    this.scale = new P();
+    this.scale0 = null;
     this.arrowScale = 2.0;
     this.tmp_p0 = new P();
     this.tmp_p1 = new P();
@@ -12,8 +14,10 @@ function View (canvasId) {
     this.ebx = new P();
     this.ecx = new P();
     this.edx = new P();
+    this.mDragStart = new P();
+    this.mDragCurrent = new P();
+    this.trackPath = undefined;
     this.tt = null;
-    this.motorSound = undefined;
 }
 
 View.prototype.getModelCoords = function(e, output) {
@@ -23,8 +27,19 @@ View.prototype.getModelCoords = function(e, output) {
     return this.m(output);
 };
 
+View.prototype.getViewCoords = function(e, output) {
+    let rect = this.canvas.getBoundingClientRect();
+    output.x = e.clientX - rect.left;
+    output.y = e.clientY - rect.top;
+    return output;
+};
+
+
 View.prototype.clear = function() {
     this.context.fillStyle = "#A0A0A0";
+    this.context.beginPath();
+    this.context.rect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.clip();
     this.context.fillRect(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
 };
 
@@ -53,19 +68,20 @@ View.prototype.drawGrid = function(minorCount, majorCount) {
 
 View.prototype.resize = function (width, height, bbox) {
     this.pixelRatio = window.devicePixelRatio||1;
-    let scale = Math.min(width / bbox.width, height / bbox.height);
-    this.scale = new P(scale, scale);
-    this.translation = new P(
-        -this.scale.x * bbox.x + (width - this.scale.x * bbox.width)/2,
-        -this.scale.y * bbox.y + (height - this.scale.y * bbox.height)/2
-    );
+    if(this.scale0 === null) {
+        let scale = Math.min(width / bbox.width, height / bbox.height);
+        this.scale0 = new P(scale, scale);
+        this.scale.mov(this.scale0);
+        this.translation0 = new P(
+            -this.scale.x * bbox.x + (width - this.scale.x * bbox.width) / 2,
+            -this.scale.y * bbox.y + (height - this.scale.y * bbox.height) / 2
+        );
+        this.translation.mov(this.translation0);
+    }
     this.canvas.width = width * window.devicePixelRatio;
     this.canvas.height = height * window.devicePixelRatio;
     this.canvas.style.width = width;
     this.canvas.style.height = height;
-    this.trackPath = undefined;
-
-    this.rasterizedTrack = undefined;
 };
 
 View.prototype.drawMark = function(p) {
@@ -101,7 +117,7 @@ View.prototype.hatchCircle = function(t, S, R, lastMove, alpha, beta, color1, co
         if(r1 > 0) {
             this.context.beginPath();
             this.context.arc(this.ebx.x, this.ebx.y,
-                this.scale.x * r1, Math.atan2(this.ecx.y, this.ecx.x), Math.atan2(this.edx.y, this.edx.x));
+                this.v1(r1), Math.atan2(this.ecx.y, this.ecx.x), Math.atan2(this.edx.y, this.edx.x));
             this.context.stroke();
         }
     }
@@ -169,11 +185,11 @@ View.prototype.render = function(model) {
     for(const player of model.race.players) {
         if (!model.race.ais[player.i]) continue;
 
-        let tt = undefined;//model.race.ais[i].traj;
+        let tt = undefined;
         if (!tt) continue;
-        let m = tt.moves[0].point;
-        ctx.moveTo(this.scale.x * m.x + this.translation.x, this.scale.y * m.y + this.translation.y);
-        //console.log(JSON.stringify(model.race.ais[1].traj.moves));
+        this.eax.mov(tt.moves[0].point);
+        this.v(this.eax);
+        ctx.moveTo(this.eax.x, this.eax.y);
         ctx.beginPath();
         if (!tt) continue;
         let prevMove = null;
@@ -182,10 +198,9 @@ View.prototype.render = function(model) {
                 prevMove = move;
                 continue;
             }
-            let m0 = prevMove.point;
-            let m = move.point;
-            //this.drawArrow(m0, m, true, false);
-            ctx.lineTo(this.scale.x * m.x + this.translation.x, this.scale.y * m.y + this.translation.y);
+            this.eax.mov(move.point);
+            this.v(this.eax);
+            ctx.lineTo(this.eax.x, this.eax.y);
             ctx.stroke();
         }
     }
@@ -233,7 +248,7 @@ View.prototype.drawCircle = function(c, R, color, op, filled) {
     ctx.beginPath();
     ctx.globalAlpha = op;
     let cv = this.v(this.eax.mov(c));
-    ctx.arc(cv.x, cv.y, R*this.scale.x, 0, 2*Math.PI);
+    ctx.arc(cv.x, cv.y, this.v1(R), 0, 2*Math.PI);
     //ctx.closePath();
     if(filled){
         ctx.fillStyle = color;
@@ -319,13 +334,13 @@ View.prototype.drawMove = function(trajectory, moveNumber, drawMove, color, glob
         //this.eax.y = this.context.canvas.clientHeight/2;
 
         let ptm = model.race.players[model.playerToMove];
-        let move = ptm.trajectory.bez(Math.min(ptm.trajectory.moves.length-1, ptm.trajectory.animationMove));
+        let move = ptm.trajectory.bez(ptm.trajectory.animationMove);
         let b0 = bezierPoint(ptm.trajectory.animationMoveFraction-0.01,
             this.eax.mov(move[0]), this.ebx.mov(move[1]), this.ecx.mov(move[2]), this.edx);
         let b1 = bezierPoint(ptm.trajectory.animationMoveFraction,
             this.eax.mov(move[0]), this.ebx.mov(move[1]), this.ecx.mov(move[2]), this.tmp_p1);
 
-        speedOfSound = {rpm: speed2rpm(speed), x: pv0.x - b1.x, y: pv0.y - b1.y, dx: b1.x - b0.x, dy: b1.y-b0.y};
+        speedOfSound = {rpm: speed2rpm(speed), x: (pv0.x - b1.x), y: (pv0.y - b1.y), dx: b1.x - b0.x, dy: b1.y-b0.y};
     }
     ctx.globalAlpha = 1.0;
     return speedOfSound;
@@ -336,20 +351,11 @@ View.prototype.drawTrack = function(track) {
     ctx.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
     this.clear();
     if(this.trackPath === undefined) {
-
         this.trackPath = parseSvgPathData(track.renderPath,
             parseSvgPathData.canvasIfc,
             new Path2D());
-        //console.log(JSON.stringify());
-        //this.trackPath = new Path2D(track.renderPath);
-        //const p0 = new Path2D(track.renderPath);
-        //const m = document.createElementNS("http://www.w3.org/2000/svg", "svg").createSVGMatrix();
-        //const t = m.translate(this.translation.x, this.translation.y).scale(this.scale.x, this.scale.y);
-        //this.trackPath.addPath(p0, t);
         this.tt = new Trajectory(track);
-        //this.rasterizedTrack = ctx.getImageData(0, 0, this.canvas.clientWidth, this.canvas.clientHeight);
     }
-
     ctx.fillStyle = "#ffffff";
     //let oldTransform = ctx.resetTransform();
     ctx.setTransform(this.scale.x * this.pixelRatio, 0, 0, this.scale.y * this.pixelRatio,
@@ -425,6 +431,10 @@ View.prototype.v = function(p) {
     return p;
 };
 
+View.prototype.v1 = function(p) {
+    return p * this.scale.x;
+};
+
 View.prototype.m = function(p) {
     p.x -= this.translation.x;
     p.x /= this.scale.x;
@@ -473,4 +483,34 @@ View.prototype.drawArrow = function(a, b, color, filled, cross) {
             ctx.stroke();
         }
     }
+};
+
+View.prototype.zoom = function(origin, delta) {
+/*
+    this.panx = (this.panx-x*paper.scale)*percent+x*paper.scale;
+    this.pany = (this.pany-y*paper.scale)*percent+y*paper.scale;
+    var panx = (tx*paper.scale*olds+this.panx);
+    var pany = (ty*paper.scale*olds+this.pany);
+
+    this.scalet = t+"T"+(panx/paper.scale)+","+(pany/paper.scale);
+    track.all.transform(this.scalet);
+
+    */
+    let percent = 0.0;
+    if(delta < 0) {
+        percent = 0.1;
+    } else if(delta > 0) {
+        percent = -0.1;
+    }
+    this.translation.add(origin.mul(-this.scale.x*percent));
+    this.scale.mul(1+percent);
+};
+
+View.prototype.initializeDrag = function(origin) {
+  this.mDragStart.mov(this.translation);
+  this.mDragCurrent.mov(origin);
+};
+
+View.prototype.drag = function(current) {
+    this.translation.mov(this.mDragStart).add(current).sub(this.mDragCurrent);
 };

@@ -58,7 +58,6 @@ Model.prototype.animate = function () {
 Model.prototype.startAnimation = function() {
     this.animationLastTime = this.now();
     this.timerRender = window.setInterval(this.update.bind(this), 1000/60);
-    //this.timerUpdate = window.setInterval(this.animate.bind(this), 1000/12s0);
 };
 
 Model.prototype.preciseMove = function (B) {
@@ -129,12 +128,11 @@ function computerPlay(ai) {
 }
 
 
-Model.prototype.aiMove = function(p) {
+Model.prototype.aiMove = function() {
     if (this.race.ais[this.playerToMove] !== null) {
         //console.log("computer Play " + this.playerToMove);
         computerPlay(this.race.ais[this.playerToMove]);
-    } else
-        this.adjust(p)
+    }
 }
 
 Model.prototype.finalizeMove = function(p) {
@@ -157,5 +155,6 @@ Model.prototype.finalizeMove = function(p) {
     } else {
         this.playerToMove += 1;
     }
-    this.aiMove(p);;
+    this.aiMove();
+    this.adjust(p);
 }
