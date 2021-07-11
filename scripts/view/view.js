@@ -129,9 +129,10 @@ View.prototype.hatchCircle = function(t, S, R, lastMove, alpha, beta, color1, co
 View.prototype.drawTrajectory = function(t, i,  notAi, moveFrom, moveTo, globalAlpha) {
     let lastMove = t.moves.length;
     let player = model.race.players[i];
-    if(player && notAi && i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
+    let drawLastMove = (notAi || i != model.playerToMove);
+    if(player && drawLastMove && i <= model.playerToMove && player.adjustedMove && player.trajectory.altmoves.length > player.trajectory.moves.length) {
         lastMove += 1;
-        if(i === model.playerToMove && notAi/* && model.race.ais[model.playerToMove] === null*/) {
+        if(i === model.playerToMove/* && model.race.ais[model.playerToMove] === null*/) {
             let R = t.steeringRadius(lastMove - 1);
             let S1 = this.tmp_p0.mov(t.t2b(player.trajectory.c(lastMove - 1), lastMove - 1));
             let S2 = this.tmp_p1.mov(t.t2b(t.c()));
@@ -175,7 +176,7 @@ View.prototype.render = function(model) {
     }
     this.drawTrack(model.track);
     for (const player of model.race.players) {
-        this.drawTrajectory(player.trajectory, player.i, true);
+        this.drawTrajectory(player.trajectory, player.i, !model.race.ais[player.i]);
     }
 
     let ctx = this.context;
@@ -218,7 +219,7 @@ View.prototype.render = function(model) {
         if(DEBUG || true && (ai.states.length > 0 || ai.lastState)) {
             this.tt.moves = (ai.lastState ? ai.lastState : ai.states.peek()).moves;
 
-            this.drawTrajectory(this.tt, model.playerToMove, false, 3, this.tt.moves.length-1, 1.0);
+            this.drawTrajectory(this.tt, model.playerToMove, false, 4, this.tt.moves.length-1, 1.0);
             ctx.globalAlpha = 0.1;
             let  at = ai.currentTarget;
             let line = model.track.design.line(at, ai.shorten);
@@ -398,11 +399,28 @@ View.prototype.drawTrack = function(track) {
     ctx.setLineDash(solid);
 
     if(DEBUG) {
+        let len = track.design.length();
         let points = track.cover ? track.cover.getAllPoints() : [];
+        let minv = Infinity;
+        let maxv = -Infinity;
+        let f = function(Bb) { return  (2*Bb.lad - Bb.lat*len);}
         if(points.length > 0) {
             for (let i = 0; i < points.length; ++i) {
-                this.drawCircle(points[i], 0.5, "#eb0000", points[i].data.lat, true);
+                //console.log(points[i].data.lat);
+                let p = points[i].data;
+                let v = f(p);
+                minv = Math.min(minv, v);
+                maxv = Math.max(maxv, v);
+                //this.drawCircle(points[i], 0.5, "#eb0000", , true);
             }
+            for (let i = 0; i < points.length; ++i) {
+                //console.log(points[i].data.lat);
+                let p = points[i].data;
+                let v = f(p);
+                let step = 1.0/50;
+                this.drawCircle(points[i], 0.5, "#eb0000", ((v-minv)/(maxv-minv) % step)/step, true);
+            }
+
         }
     }
     //console.log(track.design.optimalPath.length, track.design.optimalPath[0].points.length);

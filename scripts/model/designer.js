@@ -429,7 +429,7 @@ Designer.prototype.cover = function(lcount, wcount, psize) {
     let len = this.length();
     let points = [];
     let points2D = [];
-    for(let lat = 0, ix = 0; lat < 1.0; lat += 1.0/lcount, ++ix) {
+    for(let lat = 0.0/lcount, ix = 0; lat < 1.0; lat += 1.0/lcount, ++ix) {
         points2D[ix] = [];
         let line = this.line(lat*len);
         let a = new P(line.x1, line.y1);
@@ -451,67 +451,82 @@ Designer.prototype.cover = function(lcount, wcount, psize) {
 Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
     let len = this.length();
     let points = [];
+    let points2D = [];
     let paths = [];
-    let plimit = Math.max(limit, wcount);
+    //let plimit = Math.max(limit, wcount);
     for(let pi = 0; pi < wcount; ++pi) {
-        paths.push({pints:[], score:0.0, curvature:0.0, length: 0.0});
+        paths.push({points:[], score:0.0, curvature:0.0, length: 0.0});
     }
     let closeFlag = 0;
     let cr = 1.0;
     let ln = 1.0;
     let lines = [];
-    for(let lat = 0; lat < 1.0; lat += 1.0/lcount) {
+    for(let lat = 0.0/lcount; lat < 1.0; lat += 1.0/lcount) {
         let elat = lat;
         let line = this.line(elat * len);
         lines.push({line:line,lat:lat});
     }
-    for(let i = 0; i < lines.length; ++i) {
+    let maxlad = -Infinity;
+    let minlad = Infinity;
+    for(let i = 0, ix = 0; i < lines.length; ++i, ++ix) { // in steps along the length of the track
+        points2D[ix] = [];
         let line = lines[i].line;
         let lat = lines[i].lat;
         let a = new P(line.x1, line.y1);
         let b = new P(line.x2, line.y2);
         let w = new P().mov(b).sub(a);
         let npaths = [];
-        let delta = 0.98 / (wcount+1);
-        for(let wat = 0.01; wat < 1.0; wat += delta) {
+        let delta = 0.98 /(wcount-1);///(Math.abs(line.shorten)||1)/2;
+        console.log(JSON.stringify([i, lines.length]));
+        for(let wat = 0.01, iy = 0; wat < 1.0; wat += delta, ++iy) { // in steps along the width of the track
             let x =  line.x1 + wat * w.x;
             let y = line.y1 + wat * w.y;
-            let point = {x:x, y:y, angle: line.angle, lat: lat, wat: wat};
-            if(!closeFlag)
-                points.push(point);
+            let point = {x:x, y:y, angle: line.angle, lat: lat, wat: wat, ix:ix, iy:iy, lad:null};
+
             let minScore = Infinity;
-            for(let pi = 0; pi < paths.length; ++pi) {
-                let path = {score: paths[pi].score, points: JSON.parse(JSON.stringify(paths[pi].points)), last:paths[pi].last};
-                path.points.push(point);
-                if(path.points.length > 2) {
-                    path.score += alpha*pathLength(path.points.slice(path.points.length - 3, path.points.length)) / delta;
+            let minPath = paths[iy];
+            for(let pi = 0; pi < paths.length; ++pi) { // shortest paths to all nodes of the previous longitudinal step
+                let newScore = paths[pi].score;
+                if(paths[pi].points.length > 1)
+                    newScore += distance(paths[pi].points[paths[pi].points.length -1], point);
+                if(newScore < minScore) {
+                    minScore = newScore;
+                    minPath = paths[pi];
                 }
-                if(path.points.length > 2) {
-                    let laster = path.last;
-                    path.last += pathCurvature(path.points.slice(path.points.length - 3, path.points.length));
-                    if(laster)
-                        path.score += beta * Math.sign(laster - path.last)* Math.pow(laster - path.last, 2.0)
-                }
-                minScore = Math.min(minScore, path.score);
-                point.lat = minScore;
-                npaths.push(path);
             }
-            point.lat = minScore;
+            if(minScore >= Infinity)
+                minScore = 0.0;
+            let exp = 4;
+            point.lad = minScore - lat;//);//Math.pow(Math.pow(lat, exp) + Math.pow((minScore - lat),exp), 1/exp);
+            if(closeFlag > 0) {
+                points.push(point);
+                points2D[ix][iy] = point;
+            } else {
+                maxlad = Math.max(maxlad, point.lad);
+                minlad = Math.min(minlad, point.lad);
+            }
+            minPath.score = minScore;//minScore;
+            //console.log(minScore);
+            let path = {score: minPath.score, points: [minPath.points[minPath.points.length - 1]], last:minPath.last}; //JSON.parse(JSON.stringify(paths[pi].points))
+            path.points.push(point);
+            npaths.push(path);
         }
-        npaths.sort(function (a, b) { return Math.sign(a.score - b.score);});
-        paths = npaths.slice(0, plimit);
-        if(closeFlag == 3)
-            break;
+        //npaths.sort(function (a, b) { return Math.sign(a.score - b.score);});
+        paths = npaths;//.slice(0, plimit);
+        //if(closeFlag == 3)
+        //    break;
         if(i === lines.length - 1) {
-            cr = paths[0].curvature;
-            ln = paths[0].length;
+            if(closeFlag > 0)
+                break;
+            //cr = paths[0].curvature;
+            //ln = paths[0].length;
             i = -1;
             lat = -1.0/lcount;
             closeFlag += 1;
             continue;
         }
     }
-    let max = -Infinity;
+    /*let max = -Infinity;
     let min = Infinity;
     for(let i = lcount*2-1; i < lcount*3; ++i) {
         max = Math.max(max, points[i].lat);
@@ -526,8 +541,11 @@ Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
     }
     paths[0].points = ps;
     this.optimalPath = paths.slice(0,1);
-    console.log(JSON.stringify(this.optimalPath));
-    return points;
+    console.log(JSON.stringify(this.optimalPath));*/
+    for(let i = 0; i < points.length; ++i) {
+        points[i].lad = (points[i].lad - maxlad - minlad)/(maxlad-minlad)*maxlad;
+    }
+    return [points, points2D, maxlad];
 };
 
 Designer.prototype.at = function(len) {
@@ -581,7 +599,7 @@ Designer.prototype.line = function(at, shorten0) {
     let addx = shorten*subx;
     let addy = shorten*suby;
     let s = {x1: p.x + addx, y1: p.y + addy, angle:b,
-        x2: p.x-subx, y2: p.y - suby, seg: p.seg
+        x2: p.x-subx, y2: p.y - suby, seg: p.seg, shorten: shorten
     };
     return s;
 };
