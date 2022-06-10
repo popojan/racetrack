@@ -28,7 +28,6 @@
 <script src="scripts/algorithm/ai.js"></script>
 <script src="scripts/algorithm/utils.js"></script>
 <script src="scripts/algorithm/optimization.js"></script>
-<script src="scripts/algorithm/Intersection.min.js"></script>
 <script src="scripts/algorithm/MyFast2Dv3.js"></script>
 <script src="scripts/algorithm/avoid.js"></script>
 <script src="scripts/raphael-2.2.0.min.b2.js"></script>
@@ -37,16 +36,19 @@
     let view       = new View("canvas");
     let model      = new Model().updates(view);
     let controller = new Controller("body").manipulates(model, view);
-    let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 -20 15 P 900 F 100";
+    //let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -75 170 C -35 120 z G 10 -20 15 P 900 F 100";
+    let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -140 40 S 50 C -100 50 S 20 C -80 165 C -80 100 S 50 C 90 60 z G 10 -20 15 P 900 F 100";
+    //let track = "T 27 0 100 275 S 170 C -70 100 S 50 C 225 50 C -200 40 S 50 C -90 100 S 10 C -80 135 C -40 80 S 40 C 110 60 z G 10 -20 15 P 900 F 100";
+    //let track = "T 25 0 100 275 S 170 C -70 100 S 50 C 225 50 C -200 40 S 50 C -90 100 S 10 C -80 135 C -40 80 S 40 C 180 30 S 80 C -180 30 S 110 C 90 30 S 70 z G 10 -20 15 P 900 F 100";
+    //let track = "T 22 0 100 275 S 10 C -70 100 S 50 C 225 35 C -155 40 S 150 C -110 50 S 20 C -75 170 S 100 C -35 120 S 50 C -50 110 z G 10 -20 12 P 500 F 1150";
     const urlParams = new URLSearchParams(window.location.search);
     track = (urlParams.get("track")||track);
     let players = (urlParams.get("players")||"1H").split("");
+    let precision = parseFloat(urlParams.get("precision")||"1");
     //let randomize = parseFloat(urlParams.get("randomize")||"0.0");
     //console.log(JSON.stringify(players));
-    model.startRace(track, players);
-
+    model.startRace(track, players, precision);
     document.onreadystatechange = function() { controller.resizePaper() };
-
     model.startAnimation();
 </script>
 </body>

@@ -8,6 +8,7 @@ function Designer(name) {
     this.circuit = false;
     this.bbox = {x:0,y:0,width:0,height:0};
     this.checks = [];
+    this.curbs = [[],[]];
     return this;
 }
 
@@ -77,20 +78,29 @@ Designer.prototype._start = function(alpha, sx, sy, lr) {
     let dx = sx+lr*this.w*Math.cos(a);
     let dy = sy+lr*this.w*Math.sin(a);
     //this.s(dx, dy);
-    return "M "+dx +" " + dy;
+    return "M "+ dx + " " + dy;
 };
 
-Designer.prototype._straight = function(alpha, l) {
+Designer.prototype._straight = function(alpha, l, central) {
     let a = (alpha)/180*Math.PI;
     let dx = l*Math.cos(a);
     let dy = l*Math.sin(a);
-    this.ex += dx;
-    this.ey += dy;
     //this.bbup(this.ex, this.ey);
-    return "l "+dx +" " + dy;
+    let ady = 0;
+    let adx = 0;
+    if(central !== 0) {
+        adx = central * Math.cos((alpha + 90) / 180 * Math.PI) * this.w;
+        ady = central * Math.sin((alpha + 90) / 180 * Math.PI) * this.w;
+    }
+    let ret = " L " + (this.ex + dx + adx) + ' ' + (this.ey + dy + ady);
+    if(central === 0) {
+        this.ex += dx;
+        this.ey += dy;
+    }
+    return ret;
 };
 
-Designer.prototype._curve = function(a, r, dalpha, central) {
+Designer.prototype._curve = function(a, r, dalpha, central, step) {
     let dir = -Math.sign(dalpha);
     dalpha = Math.abs(dalpha);
     let da = dalpha/180*Math.PI;
@@ -107,11 +117,28 @@ Designer.prototype._curve = function(a, r, dalpha, central) {
     this.cy = ty + this.ey;
     let oex = this.ex;
     let oey = this.ey;
-    if(central) {
+    let adx = 0;
+    let ady = 0;
+    if (central === undefined) {
+        adx = 0;
+        ady = 0;
+    }
+    else if (central !== 0) {
+            adx = central * Math.cos((a+90)/180*Math.PI) * this.w;
+            ady = central * Math.sin((a+90)/180*Math.PI) * this.w;
+    }
+    let ret = "A "+ r + " "+r+" "+0+" "+ large + " " + sweep +" "+ (this.ex+ex +adx) + " " + (this.ey+ey+ady);
+    if(step) {
+        this.curbs[step%2].push('M ' + (this.ex + adx) + ' ' + (this.ey + ady));
+        //this.curbs[step%2].push(ret);
+        this.curbs[step%2].push('L ' + (this.ex + adx + ex) + ' ' + (this.ey + ady + ey));
+    }
+    if(central === 0) {
         this.ex += ex;
         this.ey += ey;
     }
-    return "a "+r+" "+r+" "+0+" "+ large + " " + sweep +" "+ ex + " " + ey;
+    return ret;
+    //return (new CircularArc(new P(this.cx, this.cy), r, (a)/360.0,(a-dir*dalpha)/360.0, sweep)).toBezier3();
 };
 
 function randomDesign(N, w, h) {
@@ -218,27 +245,62 @@ Designer.prototype.start = function(w, a, sx, sy) {
     this.sy = sy;
     this.ex = sx;
     this.ey = sy;
-    this.segments.push({a:this.a,sx:sx,sy:sy,ex:sx,ey:sy,len:0});
+    this.segments.push({a:this.a,sx:sx,sy:sy,ex:sx,ey:sy,len:0, i: 0, clen: 0.0});
     return this;
 };
 Designer.prototype.straight = function(l) {
     let sx = this.ex;
     let sy = this.ey;
-    let s = this._straight(this.a, l);
+    let s = this._straight(this.a, l, -1);
     this.sl.push(s);
-    this.sm.push(s);
+    s = this._straight(this.a, l, 1);
     this.sr.push(s);
-    this.segments.push({a:this.a,sx:sx,sy:sy,ex:this.ex,ey:this.ey,len:l});
+    s = this._straight(this.a, l, 0);
+    this.sm.push(s);
+
+    this.segments.push({a:this.a,sx:sx,sy:sy,ex:this.ex,ey:this.ey,len:l,rlen:l, llen:l,
+        i:this.segments.length,clen:  this.segments[this.segments.length-1].clen+l});
     return this;
 };
-Designer.prototype.curve = function(phi, r) {
-    let sx = this.ex;
-    let sy = this.ey;
-    this.sl.push(this._curve(this.a, r + Math.sign(phi) * this.w, phi, 0));
-    this.sr.push(this._curve(this.a, r - Math.sign(phi) * this.w, phi, 0));
-    this.sm.push(this._curve(this.a, r, phi, 1));
-    this.segments.push({a:this.a,sx:sx,sy:sy,ex:this.ex,ey:this.ey,len:Math.abs(phi)/180*Math.PI*r,r:r,cx:this.cx, cy:this.cy,phi:phi});
-    this.a += phi;
+Designer.prototype.curve = function(phi0, r) {
+    let steps;
+    let phi;
+    const div = Math.max(1,250/(r - this.w));
+    if(div === undefined) {
+        steps = 1;
+        phi = phi0;
+    } else {
+        steps = Math.ceil(Math.abs(phi0) / div);
+        phi = phi0 / steps;
+    }
+
+    for(let i = 0; i < steps; ++i) {
+        let sx = this.ex;
+        let sy = this.ey;
+        this.sl.push(this._curve(this.a, r + Math.sign(phi) * this.w, phi, -1, Math.sign(phi) == -1 ? i : null));
+        this.sr.push(this._curve(this.a, r - Math.sign(phi) * this.w, phi, 1, Math.sign(phi) == 1 ? i : null));
+        this.sm.push(this._curve(this.a, r, phi, 0, null));
+        let l = Math.abs(phi) / 180 * Math.PI * r;
+        let ll = Math.abs(phi) / 180 * Math.PI * (r + Math.sign(phi) * this.w);
+        let rl = Math.abs(phi) / 180 * Math.PI * (r - Math.sign(phi) * this.w);
+        this.segments.push({
+            a: this.a,
+            sx: sx,
+            sy: sy,
+            ex: this.ex,
+            ey: this.ey,
+            len: l,
+            llen: Math.max(l, ll),
+            rlen: Math.max(l, rl),
+            r: r,
+            cx: this.cx,
+            cy: this.cy,
+            phi: phi,
+            i: this.segments.length,
+            clen: this.segments[this.segments.length - 1].clen + l
+        });
+        this.a += phi;
+    }
     return this;
 };
 Designer.prototype.close = function() {
@@ -366,32 +428,34 @@ Designer.prototype.closable = function() {
 
 Designer.prototype.i = function() {
     let p = this.sl;
-    let sx = 0;
-    let sy = 0;
-    for(let i = 0; i < p.length; ++i) {
+    let a = p[p.length-2].trim().split(" ");
+    let sx = parseFloat(a[a.length-2]);
+    let sy = parseFloat(a[a.length-1]);
+    /*for(let i = 0; i < p.length; ++i) {
         let a = p[i].trim().split(" ");
         if(i == 0) {
             sx = parseFloat(a[a.length-2]);
             sy = parseFloat(a[a.length-1]);
         }
         else if (a.length > 1) {
-            sx += parseFloat(a[a.length-2]);
-            sy += parseFloat(a[a.length-1]);
+            sx = parseFloat(a[a.length-2]);
+            sy = parseFloat(a[a.length-1]);
         }
-    }
+    }*/
     let r = ["M " + sx + " " + sy];
-    for(let i = p.length-1; i > 0; --i) {
+    for(let i = p.length-2; i > 0; --i) {
         let a = p[i].trim().split(" ");
+        let b = p[i-1].trim().split(" ");
         if (a.length > 1) {
-            a[a.length - 1] = -parseFloat(a[a.length - 1]);
-            a[a.length - 2] = -parseFloat(a[a.length - 2]);
-            if (a[0] == "a") {
+            a[a.length - 1] = parseFloat(b[b.length - 1]);
+            a[a.length - 2] = parseFloat(b[b.length - 2]);
+            if (a[0] == "A") {
                 a[5] = 1 - a[5];
             }
-            r.push(a.join(" "));
+            r.push(' ' + a.join(" "));
         }
     }
-    r.push("z");
+    r.push(" z ");
     return r.join(" ");
 }
 
@@ -404,11 +468,25 @@ Designer.prototype.m = function() {
 
 Designer.prototype.length = function() {
     let len = 0.0;
-    for(let i = 0; i < this.segments.length; i++) {
-        len += this.segments[i].len;
+    for(let seg of this.segments) {
+        len += seg.len;
     }
     return len;
-}
+};
+Designer.prototype.rlength = function() {
+    let len = 0.0;
+    for(let seg of this.segments) {
+        len += seg.rlen||seg.len;
+    }
+    return len;
+};
+Designer.prototype.llength = function() {
+    let len = 0.0;
+    for(let seg of this.segments) {
+        len += seg.llen||seg.len;
+    }
+    return len;
+};
 function pathLength(tup2) {
     let a = tup2[0];
     let c = tup2[2];
@@ -424,6 +502,12 @@ function pathCurvature(tup3) {
     let bc = new P().mov(b).sub(c);
     return Math.acos((ab.x*bc.x + ab.y*bc.y)/ab.len()/bc.len())/Math.PI * (ab.len()+bc.len());
 }
+Designer.prototype.maxSpeedMoves = function() {
+  let maxlen = -Infinity;
+  for(let seg of this.segments)
+    maxlen = Math.max(seg.len, maxlen);
+  return Math.sqrt(maxlen/this.R);
+};
 Designer.prototype.cover = function(lcount, wcount, psize) {
     psize = psize||0.01;
     let len = this.length();
@@ -437,8 +521,8 @@ Designer.prototype.cover = function(lcount, wcount, psize) {
         let w = new P().mov(b).sub(a);
         for(let wat = 0.01, iy = 0; wat < 1.00; wat += 0.98/(wcount-1), ++iy) {
 
-            let x = line.x1 + wat * w.x;
-            let y = line.y1 + wat * w.y;
+            let x = (len/lcount) * Math.round((line.x1 + wat * w.x) / (len/lcount));
+            let y = (len/lcount) * Math.round((line.y1 + wat * w.y) /(len/lcount));
             let point = {x: x, y: y,
                 angle: line.angle, lat: lat, wat: wat, ix: ix, iy:iy, seg: line.seg};
             points2D[ix][iy] = point;
@@ -450,6 +534,8 @@ Designer.prototype.cover = function(lcount, wcount, psize) {
 
 Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
     let len = this.length();
+    let llen = this.llength();
+    let rlen = this.rlength();
     let points = [];
     let points2D = [];
     let paths = [];
@@ -457,7 +543,7 @@ Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
     for(let pi = 0; pi < wcount; ++pi) {
         paths.push({points:[], score:0.0, curvature:0.0, length: 0.0});
     }
-    let closeFlag = 0;
+    let closeFlag = 1;
     let cr = 1.0;
     let ln = 1.0;
     let lines = [];
@@ -477,11 +563,19 @@ Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
         let w = new P().mov(b).sub(a);
         let npaths = [];
         let delta = 0.98 /(wcount-1);///(Math.abs(line.shorten)||1)/2;
-        console.log(JSON.stringify([i, lines.length]));
+        //console.log(JSON.stringify([i, lines.length]));
         for(let wat = 0.01, iy = 0; wat < 1.0; wat += delta, ++iy) { // in steps along the width of the track
             let x =  line.x1 + wat * w.x;
             let y = line.y1 + wat * w.y;
-            let point = {x:x, y:y, angle: line.angle, lat: lat, wat: wat, ix:ix, iy:iy, lad:null};
+            //let x = (len/lcount) * Math.round((line.x1 + wat * w.x) / (len/lcount));
+            //let y = (len/lcount) * Math.round((line.y1 + wat * w.y) /(len/lcount));
+            //let frac = line.p.part;
+            //let alpha = Math.pow(Math.abs(frac-0.5)/0.5,2);
+            //if(line.seg.r) {
+            //    lat = ((len * lat - frac * line.seg.len)
+            //        + frac * ((line.seg.rlen * wat + line.seg.llen * (1 - wat)))) / len;//(len*lat-line.seg.len + (line.seg.llen*wat+line.seg.rlen*(1-wat)));
+            //}
+            let point = {x:x, y:y, angle: line.angle, lat: lat, wat: wat, ix:ix, iy:iy, lad:lat, mov:len*lat, touched:1};
 
             let minScore = Infinity;
             let minPath = paths[iy];
@@ -508,6 +602,7 @@ Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
             minPath.score = minScore;//minScore;
             //console.log(minScore);
             let path = {score: minPath.score, points: [minPath.points[minPath.points.length - 1]], last:minPath.last}; //JSON.parse(JSON.stringify(paths[pi].points))
+            //let path = {score: minPath.score, points: copy(minPath.points), last:minPath.last}; //JSON.parse(JSON.stringify(paths[pi].points))
             path.points.push(point);
             npaths.push(path);
         }
@@ -534,17 +629,18 @@ Designer.prototype.optimal = function(lcount, wcount, limit, alpha, beta) {
     }
     for(let i = lcount*2-1; i < lcount*3; ++i)
         points[i].lat = (points[i].lat-min)/(max-min);
-    paths[0].points = paths[0].points.slice(lcount*2-1,lcount*3);
+    */
+    /*paths[0].points = paths[0].points.slice(lcount,lcount*2);
     let ps =[];
     for(let i = 0; i < paths[0].points.length; i+=2) {
         ps.push(paths[0].points[i]);
     }
-    paths[0].points = ps;
-    this.optimalPath = paths.slice(0,1);
-    console.log(JSON.stringify(this.optimalPath));*/
+    paths[0].points = ps;*/
+    /*this.optimalPath = paths.slice(0,1);
+    console.log(JSON.stringify(this.optimalPath));
     for(let i = 0; i < points.length; ++i) {
         points[i].lad = (points[i].lad - maxlad - minlad)/(maxlad-minlad)*maxlad;
-    }
+    }*/
     return [points, points2D, maxlad];
 };
 
@@ -564,9 +660,9 @@ Designer.prototype.at = function(len) {
             } else { //curve
                 let part = len/seg.len;
                 let s = this._curve(seg.a, seg.r, seg.phi*part).trim().split(" ");
-                let dx = parseFloat(s[6]);
-                let dy = parseFloat(s[7]);
-                return {x:seg.sx+dx, y:seg.sy+dy, a:seg.a+seg.phi*part, seg:seg, part: part};
+                let dx = parseFloat(s[s.length - 2]);
+                let dy = parseFloat(s[s.length - 1]);
+                return {x: dx-this.ex+seg.sx, y: dy-this.ey+seg.sy, a:seg.a+seg.phi*part, seg:seg, part: part};
             }
             break;
         }
@@ -587,9 +683,9 @@ Designer.prototype.line = function(at, shorten0) {
     let p = this.at(at);
     let shorten = 0;
     if(p.seg.r)
-        shorten = shorten0 ? shorten0 + (1-shorten0) * (-2.0 * Math.pow(1-Math.abs(p.part - 0.65)/0.65,0.25) + 1): 1.0;
+        shorten = shorten0 ? shorten0 + (1-shorten0) * (1 - 2.0 * Math.pow(1-Math.abs(p.part - 0.5)/0.5,0.25)): 1.0;
     else
-        shorten = 1.0;//shorten ? shorten + (1-shorten) * (-2.0 * Math.pow(Math.abs(p.part - 0.5)/0.5,0.5) + 1): 1.0;
+        shorten = 1.0;//shorten0 ? shorten0 + (1-shorten0) * (-2.0 * Math.pow(Math.abs(p.part - 0.5)/0.5,0.5) + 1): 1.0;
     let b = (p.a+90)/180*Math.PI;
     let side = this.w;
     //console.log(JSON.stringify(p));
@@ -599,7 +695,7 @@ Designer.prototype.line = function(at, shorten0) {
     let addx = shorten*subx;
     let addy = shorten*suby;
     let s = {x1: p.x + addx, y1: p.y + addy, angle:b,
-        x2: p.x-subx, y2: p.y - suby, seg: p.seg, shorten: shorten
+        x2: p.x-subx, y2: p.y - suby, seg: p.seg, shorten: shorten, p: p
     };
     return s;
 };
@@ -618,9 +714,13 @@ Designer.prototype.finishLine = function(i) {
     return dic;
 };
 
+Designer.prototype.startposSep = function(sid) {
+    return 4*(0.5-sid%2)*this.w/5;
+}
 Designer.prototype.startposAt = function(sid) {
     let len = this.length();
-    let at = (this.gridat - Math.floor(sid/2)*this.R*3 - (sid%2)*this.R);
+    let side = Math.abs(this.startposSep(sid));
+    let at = (this.gridat - Math.floor(sid/2)*3*side - (sid%2)*side);
     if(at < len)
         at += len;
     return at % len;
@@ -629,7 +729,7 @@ Designer.prototype.startpos = function(sid) {
     let p = this.at(this.startposAt(sid));
     let a = p.a/180*Math.PI;
     let b = (p.a+90)/180*Math.PI;
-    let side = 3*(0.5-sid%2)*Math.min(this.R/2, this.w/3);
+    let side = this.startposSep(sid);
     let s = {x: p.x+side*Math.cos(b), y: p.y + side*Math.sin(b),
         vx: Math.cos(a),
         vy: Math.sin(a)};

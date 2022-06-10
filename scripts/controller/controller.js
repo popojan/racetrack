@@ -56,15 +56,6 @@ Controller.prototype.wheel = function (event) {
     this.view.zoom(this.eax, event.deltaY);
 };
 
-
-/*
-Controller.prototype.down = function(event) {
-    let _this = this;
-    setTimeout(function () {
-        return _this._down(event);
-    }, 10);
-};
-*/
 Controller.prototype.up = function (event) {
     if(!this.ready || this.model.race.players.length < 1) return;
     this.humanDown = false;
@@ -73,13 +64,6 @@ Controller.prototype.up = function (event) {
     if(event.button === 0 && this.model.race.ais[this.model.playerToMove] === null)
         this.model.finalizeMove(this.eax);
 };
-
-/*Controller.prototype.up = function(event) {
-    let _this = this;
-    setTimeout(function () {
-        return _this._up(event);
-    }, 10);
-}*/
 
 Controller.prototype.resizePaper = function(e) {
     let w = window.innerWidth

@@ -11,8 +11,9 @@ Race.prototype.addPlayer = function(player, ai) {
 };
 
 Race.prototype.advanceAnimation = function(timeDelta) {
-    for(let i = 0; i < this.players.length; ++i) {
-        this.players[i].trajectory.advanceAnimation(timeDelta, this.players[0].trajectory.moves.length);
+    let nMoves = this.players[0].trajectory.moves.length;
+    for(let player of this.players) {
+        player.trajectory.advanceAnimation(timeDelta, nMoves);
     }
 };
 

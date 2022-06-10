@@ -16,7 +16,7 @@ Model.prototype.now = function() {
     return window.performance.now();
 };
 
-Model.prototype.startRace = function (trackDesign, players) {
+Model.prototype.startRace = function (trackDesign, players, precision) {
     this.track = new Track().createFrom(trackDesign);
     this.race = new Race();
     let steeringRadius = this.track.defaultSteeringRadius;
@@ -28,8 +28,23 @@ Model.prototype.startRace = function (trackDesign, players) {
         let player = new Player("player" + i, steeringRadius, collisionRadius, i);
         let trajectory = new Trajectory(this.track)
         player.trajectory = trajectory.move(this.track.startPositions[i], 1);;
-        this.race.addPlayer(player, (who === "h" || who === "H") ? null: new AI(this.track, player, i));
+        this.race.addPlayer(player, (who === "h" || who === "H") ? null: new AI(this.track, player, i, precision));
     }
+    this.race.start();
+    if(this.race.ais[0]) {
+        this.aiMove();
+    }
+};
+
+Model.prototype.startTraining = function (trackDesign, players) {
+    this.track = new Track().createFrom(trackDesign);
+    this.race = new Race();
+    let steeringRadius = this.track.defaultSteeringRadius;
+    let collisionRadius = this.track.defaultCollisionRadius;
+    let player = new Player("player0", steeringRadius, collisionRadius, 0);
+    let trajectory = new Trajectory(this.track)
+    this.race.addPlayer(player, new AI(this.track, player, 0));
+    player.trajectory = trajectory.move(this.track.points[Math.round(Math.random()*this.track.points.length)], 1);;
     this.race.start();
     if(this.race.ais[0]) {
         this.aiMove();
@@ -108,29 +123,20 @@ function waitForResult(ret) {
     let best = ret[0];
     if(!best) {
         ret[2].thinking = false;
-        //console.log(ret[2].legal, ret[2].crash, ret[2].illegal);
-        //ret[2].randomMove(waitForResult);
     } else {
         model.initializeMove(best);
-        //console.log("Computer played");
         ret[2].thinking = false;
         model.finalizeMove(best);
-        //console.log("finalized");
     }
 }
 
 function computerPlay(ai) {
     return ai.randomMove(waitForResult);
-    /*return function () {
-        if (!ai.randomMove(waitForResult)) ;
-            setTimeout(computerPlay(ai), 100);
-    }*/
 }
 
 
 Model.prototype.aiMove = function() {
     if (this.race.ais[this.playerToMove] !== null) {
-        //console.log("computer Play " + this.playerToMove);
         computerPlay(this.race.ais[this.playerToMove]);
     }
 }
@@ -148,8 +154,13 @@ Model.prototype.finalizeMove = function(p) {
             player.trajectory.altmoves[player.trajectory.moves.length] = undefined;
             player.trajectory.move(adjustedMove, player.trajectory.moves.length);
             let score = player.trajectory.score();
-            if(score < Infinity)
-                console.log("SCORE = " + score);
+            let K = this.track.design.checks.length;
+            if((player.lapToGo||1)*K +1 <= score.length) {
+                let ii = score.length - K - 1;
+                let score0 = score[ii + K] - score[ii];
+                console.log("LAP #" + (player.lapToGo||1) + " = " + score0 + "  " + JSON.stringify(score));
+                player.lapToGo = (player.lapToGo||1)+1;
+            }
         }
         this.playerToMove = 0;
     } else {
@@ -157,4 +168,8 @@ Model.prototype.finalizeMove = function(p) {
     }
     this.aiMove();
     this.adjust(p);
+    if (this.race.ais[this.playerToMove] === null && !(this.views[0].lastEvent === null)) {
+        this.views[0].getModelCoords(this.views[0].lastEvent, this.views[0].eax);
+        this.updateMove(this.views[0].eax);
+    }
 }

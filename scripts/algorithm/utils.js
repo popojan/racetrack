@@ -2,6 +2,16 @@ Raphael = new (function(){})();
 
 function copy(x) { return JSON.parse(JSON.stringify(x)); }
 
+function copy_moves(x) {
+    let moves = [];
+    for(let i = 0; i < x.length; ++i) {
+        moves.push(new Move());
+        moves[i].point = {...x[i].point};
+        moves[i].result = {...x[i].result};
+    }
+    return moves;
+}
+
 function bezierDerivative(t, P0, P1, P2, output) {
     return output.mov(P1.sub(P0).mul(2*(1-t))).add(P2.sub(P1).mul(2*t));
 }

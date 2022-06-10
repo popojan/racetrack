@@ -9,7 +9,7 @@ function Move(p) {
     this.point = p;
     this.result = new MoveResult();
     this.cache = {
-        c: new P(), C: new P(), P: new P(), p: new P(), bez: [null, null, null]
+        c: new P(), C: new P(), P: new P(), p: new P(), bez: [new P(), new P(), new P()], fresh: true
     }
 }
 
@@ -41,8 +41,9 @@ Trajectory.prototype.advanceAnimation = function (timeDelta, currentMove) {
     this.animationMoveFraction += timeDelta / this.animationPeriod;
     if(this.animationMoveFraction > 1.0) {
         if (this.animationMove < currentMove) {
-            this.animationMove += 1;
-            this.animationMoveFraction -= 1.0;
+            let k = 1;
+            this.animationMove += k;
+            this.animationMoveFraction -= k;
         } else {
             let delta = (this.animationMoveFraction % 1.0);
             this.animationMove = 1;
@@ -202,9 +203,9 @@ Trajectory.prototype.bez = function(i) {
     a.y = (a.y + b.y) / 2;
     c.x = (b.x + c.x) / 2;
     c.y = (b.y + c.y) / 2;
-    mi.cache.bez[0] = a;
-    mi.cache.bez[1] = b;
-    mi.cache.bez[2] = c;
+    mi.cache.bez[0].mov(a);
+    mi.cache.bez[1].mov(b);
+    mi.cache.bez[2].mov(c);
     return mi.cache.bez;
 };
 
@@ -313,6 +314,8 @@ Trajectory.prototype.score = function(limit) {
     limit = limit||Infinity;
     let nextCheckpoint = 0;
     let lastCheckpoint = this.track.design.checks.length;
+    let scores = [];
+    let nextLap = 0;
     for(let i = 1; i < Math.min(this.moves.length, limit); ++i) {
         let move = this.moves[i];
         //traditional strict rule (no cuts allowed)
@@ -321,29 +324,26 @@ Trajectory.prototype.score = function(limit) {
             continue;
         }
         if (move.result.offTrackFraction > 0.0) {
-            return Infinity;
+            //return Infinity;
         }
         for (let j = 0; limit >= Infinity && j < move.result.checkpoints.length; ++j) {
             let check = move.result.checkpoints[j];
-            if (check.id === nextCheckpoint) {
+            if (check.id === nextCheckpoint || check.id == this.track.design.checks.length-1) {
 
                 if (check.direction <= 0) {
                     return Infinity;
                 }
-                //console.log("checkpoint");
-                nextCheckpoint += 1;
+                scores.push(i - 1 + check.point.t);
+                if(check.id === nextCheckpoint)
+                    nextCheckpoint = nextCheckpoint + 1;
+                if(nextCheckpoint == 1 || nextCheckpoint >= this.track.design.checks.length) {
+                    nextLap += 1;
+                    nextCheckpoint %= this.track.design.checks.length;
+                }
             }
-            if (nextCheckpoint === lastCheckpoint) {
-                return (i + check.point.t);
-            }
-        }
-        if(limit < Infinity && i === limit-1) {
-            return this.get(limit).sub(this.get(i)).len();
         }
     }
-
-    //console.log("noMoreMoves " + this.moves.length) ;
-    return Infinity;
+    return scores;
 }
 
 Trajectory.prototype.getCandidates = function(s1, r1, s2, r2, out1, out2) {

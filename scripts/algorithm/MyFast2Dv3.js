@@ -7,13 +7,8 @@
  *   A Perl utility written by Kevin Lindsey (kevin@kevlindev.com)
  *
  *****/
-//Array.prototype.foreach=function(func){let length=this.length;for(let i=0;i<length;i++){func(this[i]);}};
-//Array.prototype.grep=function(func){let length=this.length;let result=[];for(let i=0;i<length;i++){let elem=this[i];if(func(elem)){result.push(elem);}}return result;};
-//Array.prototype.map=function(func){let length=this.length;let result=[];for(let i=0;i<length;i++){result.push(func(this[i]));}return result;};
-//Array.prototype.min=function(){let length=this.length;let min=this[0];for(let i=0;i<length;i++){let elem=this[i];if(elem<min)min=elem;}return min;}
-//Array.prototype.max=function(){let length=this.length;let max=this[0];for(let i=0;i<length;i++)let elem=this[i];if(elem>max)max=elem;return max;}
 "use strict";
-let svgns = "http://www.w3.org/2000/svg";
+
 function Intersection(s, capacity) {
     this.status = s;
     this.count = 0;
@@ -21,7 +16,8 @@ function Intersection(s, capacity) {
     for(let i = 0; i < capacity; ++i) {
         this.points.push({x:null,y:null,t:2.0});
     }
-};
+}
+
 Intersection.prototype.appendPoint = function (point, t) {
     if(t >= 0 && t< 1) {
         this.points[this.count].x = point.x;
@@ -30,6 +26,7 @@ Intersection.prototype.appendPoint = function (point, t) {
         this.count += 1;
     }
 };
+
 Intersection.prototype.appendPoints = function (points, ts) {
     for (let i = 0; i < points.length; i++) {
         this.appendPoint(points[i], ts[i]);
@@ -39,21 +36,21 @@ function intersectShapes (shape1, shape2, result) {
     let ip1 = shape1.ip;//getIntersectionParams();
     let ip2 = shape2.ip;//getIntersectionParams();
     if (ip1 != null && ip2 != null) {
-        if (ip1.name == "Path") {
+        if (ip1.name === "Path") {
             Intersection.intersectPathShape(shape1, shape2, result);
-        } else if (ip2.name == "Path") {
+        } else if (ip2.name === "Path") {
             Intersection.intersectPathShape(shape2, shape1, result);
-        } else if(ip1.name == "Circle"){
+        } else if(ip1.name === "Circle"){
             
         }
         else {
-            let method;
+            //let method;
             let params;
             if (ip1.name < ip2.name) {
-                method = "intersect" + ip1.name + ip2.name;
+                //method = "intersect" + ip1.name + ip2.name;
                 params = ip1.params.concat(ip2.params);
             } else {
-                method = "intersect" + ip2.name + ip1.name;
+                //method = "intersect" + ip2.name + ip1.name;
                 params = ip2.params.concat(ip1.params);
             }
             params.push(result);
@@ -61,12 +58,12 @@ function intersectShapes (shape1, shape2, result) {
         }
     }
     return result;
-};
+}
 
 Intersection.intersectPathShape = intersectPathShape; 
 function intersectPathShape (path, shape, result) {
     return path.intersectShape(shape, result);
-};
+}
 
 Intersection.intersectBezier2Bezier2 = function (a1, a2, a3, b1, b2, b3) {
     let a, b;
@@ -101,7 +98,7 @@ Intersection.intersectBezier2Bezier2 = function (a1, a2, a3, b1, b2, b3) {
             let xRoots = new Polynomial(-c12.x, -c11.x, -c10.x + c20.x + s * c21.x + s * s * c22.x).getRoots();
             let yRoots = new Polynomial(-c12.y, -c11.y, -c10.y + c20.y + s * c21.y + s * s * c22.y).getRoots();
             if (xRoots.length > 0 && yRoots.length > 0) {
-                checkRoots: for (let j = 0; j < xRoots.length; j++) {
+                for (let j = 0; j < xRoots.length; j++) { //checkRoots:
                     let xRoot = xRoots[j];
                     if (0 <= xRoot && xRoot <= 1) {
                         for (let k = 0; k < yRoots.length; k++) {
@@ -117,7 +114,8 @@ Intersection.intersectBezier2Bezier2 = function (a1, a2, a3, b1, b2, b3) {
         }
     }
     return result;
-};
+}
+
 Intersection.intersectBezier2Bezier3 = ib2b3;
 
 function ib2b3(a1, a2, a3, b1, b2, b3, b4) {
@@ -168,7 +166,7 @@ function ib2b3(a1, a2, a3, b1, b2, b3, b4) {
         let yRoots = new Polynomial(c12.y, c11.y, c10.y - c20.y - s * c21.y - s * s * c22.y - s * s * s * c23.y).getRoots();
         if (xRoots.length > 0 && yRoots.length > 0) {
             let TOLERANCE = 1e-4;
-            checkRoots: for (let j = 0; j < xRoots.length; j++) {
+            for (let j = 0; j < xRoots.length; j++) { //checkRoots:
                 let xRoot = xRoots[j];
                 if (0 <= xRoot && xRoot <= 1) {
                     for (let k = 0; k < yRoots.length; k++) {
@@ -183,7 +181,8 @@ function ib2b3(a1, a2, a3, b1, b2, b3, b4) {
         }
     }
     return result;
-};
+}
+
 Intersection.intersectBezier2Circle = function (p1, p2, p3, c, r) {
     return Intersection.intersectBezier2Ellipse(p1, p2, p3, c, r, r);
 };
@@ -232,12 +231,12 @@ Intersection.intersectBezier2Line = function (p1, p2, p3, a1, a2) {
             let p4 = p1.lerp(p2, t);
             let p5 = p2.lerp(p3, t);
             let p6 = p4.lerp(p5, t);
-            if (a1.x == a2.x) {
+            if (a1.x === a2.x) {
                 if (min.y <= p6.y && p6.y <= max.y) {
                     result.status = "Intersection";
                     result.appendPoint(p6, t);
                 }
-            } else if (a1.y == a2.y) {
+            } else if (a1.y === a2.y) {
                 if (min.x <= p6.x && p6.x <= max.x) {
                     result.status = "Intersection";
                     result.appendPoint(p6, t);
@@ -262,26 +261,18 @@ Intersection.intersectBezier2Polygon = function (p1, p2, p3, points) {
     if (result.points.length > 0) result.status = "Intersection";
     return result;
 };
-Intersection.intersectBezier2Rectangle = function (p1, p2, p3, r1, r2) {
-    let min = r1.min(r2);
-    let max = r1.max(r2);
-    let topRight = new Point2D(max.x, min.y);
-    let bottomLeft = new Point2D(min.x, max.y);
-    let inter1 = Intersection.intersectBezier2Line(p1, p2, p3, min, topRight);
-    let inter2 = Intersection.intersectBezier2Line(p1, p2, p3, topRight, max);
-    let inter3 = Intersection.intersectBezier2Line(p1, p2, p3, max, bottomLeft);
-    let inter4 = Intersection.intersectBezier2Line(p1, p2, p3, bottomLeft, min);
-    let result = new Intersection("No Intersection");
-    result.appendPoints(inter1.points, inter.t);
-    result.appendPoints(inter2.points, inter2.t);
-    result.appendPoints(inter3.points, inter3.t);
-    result.appendPoints(inter4.points, inter4.t);
-    if (result.points.length > 0) result.status = "Intersection";
-    return result;
-};
+
 Intersection.intersectBezier3Bezier3 = ib3b3;
 
-function ib3b3(pa1, pa2, pa3, pa4, pb1, pb2, pb3, pb4, result) {
+function ib3b3(pa, pb, result) {
+    let pa1 = pa[0];
+    let pa2 = pa[1];
+    let pa3 = pa[2];
+    let pa4 = pa[3];
+    let pb1 = pb[0];
+    let pb2 = pb[1];
+    let pb3 = pb[2];
+    let pb4 = pb[3];
     let minax = Math.min(pa1.x, pa2.x, pa3.x, pa4.x);
     let minay = Math.min(pa1.y, pa2.y, pa3.y, pa4.y);
     let minbx = Math.min(pb1.x, pb2.x, pb3.x, pb4.x);
@@ -295,7 +286,7 @@ function ib3b3(pa1, pa2, pa3, pa4, pb1, pb2, pb3, pb4, result) {
         possiblex = true;
     let possibley = false;
     if((minay >= minby && minay <= maxby) ||(minby >= minay && minby <= maxay))       possibley = true;
-    if(possiblex == false || possibley == false) return result;
+    if(!possiblex || !possibley) return result;
     //m("before ib3b3");
     let ax, ay, bx, by, cx, cy, dx, dy;
     let c13x, c13y, c12x, c12y, c11x, c11y, c10x, c10y;
@@ -853,6 +844,7 @@ a1 -= c11x2 * c12y2 * c13x * c21y;
 a1 += c11y2 * c12x2 * c21x * c13y; 
 a1 -= 3 * c20x2 * c13x * c21y * c13y2; 
 a1 += 3 * c20y2 * c21x * c13x2 * c13y;
+pol33.coefs[1] = a1;
 
 let a0 = c10x * c10y * c11x * c12y * c13x * c13y;
 a0 -= c10x * c10y * c11y * c12x * c13x * c13y; 
@@ -957,6 +949,7 @@ a0 -= c20x2 * c12x * c12y2 * c13y;
 a0 -= 3 * c20x2 * c20y * c13x * c13y2; 
 a0 += c12x2 * c20y2 * c12y * c13x;
 pol33.coefs[0] = a0;
+
    let roots = pol33.getRootsInInterval(0, 1, rootsi[11]);
     for (let i = 0; i < roots.length; i++) {
         let s = roots[i];
@@ -974,7 +967,7 @@ pol33.coefs[0] = a0;
         let yRoots = pol42.getRoots(roots3); //new Polynomial(c13y, c12y, c11y, c10y - c20y - s * c21y - s * s * c22y - s * s * s * c23y).getRoots(roots3);
         if (xRoots.length > 0 && yRoots.length > 0) {
             let TOLERANCE = 1e-8;
-            checkRoots: for (let j = 0; j < xRoots.length; j++) {
+            for (let j = 0; j < xRoots.length; j++) { //checkRoots:
                 let xRoot = xRoots[j];
                 if (0 <= xRoot && xRoot <= 1) {
                     for (let k = 0; k < yRoots.length; k++) {
@@ -993,12 +986,21 @@ pol33.coefs[0] = a0;
     }
     //m("after ib3b3");
     return result;
-};
+}
 Intersection.intersectBezier3Circle = ib3e; //function (p1, p2, p3, p4, c, r) {
    // return ib3e(p1, p2, p3, p4, c, r, r);//Intersection.intersectBezier3Ellipse(p1, p2, p3, p4, c, r, r);
 //};
 
-function ib3e(p1, p2, p3, p4, ec, rx, ry, result) {
+function ib3e(pa, pb, result) {
+
+    let p1 = pa[0];
+    let p2 = pa[1];
+    let p3 = pa[2];
+    let p4 = pa[3];
+    let ec = pb[0];
+    let rx = pb[1];
+    let ry = pb[2];
+
     let a, b, c, d;
     let c3, c2, c1, c0;
     a = p1.multiply(-1);
@@ -1073,7 +1075,13 @@ Intersection.intersectBezier3Ellipse = function (p1, p2, p3, p4, ec, rx, ry) {
 
 Intersection.intersectBezier3Line = ib3l;
 
-function ib3l(p1, p2, p3, p4, a1, a2, result) {
+function ib3l(pa, pb, result) {
+    let a1 = pb[0];
+    let a2 = pb[1];
+    let p1 = pa[0];
+    let p2 = pa[1];
+    let p3 = pa[2];
+    let p4 = pa[3];
     let min = a1.min(a2);
     let max = a1.max(a2);
     let ax = -p1.x;
@@ -1131,7 +1139,7 @@ function ib3l(p1, p2, p3, p4, a1, a2, result) {
         }
     }
     return result;
-};
+}
 Intersection.intersectBezier3Polygon = function (p1, p2, p3, p4, points) {
     let result = new Intersection("No Intersection");
     let length = points.length;
@@ -1192,7 +1200,7 @@ Intersection.intersectCircleLine = function (c, r, a1, a2) {
     let deter = b * b - 4 * a * cc;
     if (deter < 0) {
         result = new Intersection("Outside");
-    } else if (deter == 0) {
+    } else if (deter === 0) {
         result = new Intersection("Tangent");
     } else {
         let e = Math.sqrt(deter);
@@ -1236,7 +1244,7 @@ Intersection.intersectCircleRectangle = function (c, r, r1, r2) {
     let inter3 = Intersection.intersectCircleLine(c, r, max, bottomLeft);
     let inter4 = Intersection.intersectCircleLine(c, r, bottomLeft, min);
     let result = new Intersection("No Intersection");
-    result.appendPoints(inter1.points, inter.t);
+    result.appendPoints(inter1.points, inter1.t);
     result.appendPoints(inter2.points, inter2.t);
     result.appendPoints(inter3.points);
     result.appendPoints(inter4.points);
@@ -1340,7 +1348,7 @@ Intersection.intersectLineLine = function (a1, a2, b1, b2) {
     let ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x);
     let ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x);
     let u_b = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y);
-    if (u_b != 0) {
+    if (u_b !== 0) {
         let ua = ua_t / u_b;
         let ub = ub_t / u_b;
         if (0 <= ua && ua <= 1 && 0 <= ub && ub <= 1) {
@@ -1350,7 +1358,7 @@ Intersection.intersectLineLine = function (a1, a2, b1, b2) {
             result = new Intersection("No Intersection");
         }
     } else {
-        if (ua_t == 0 || ub_t == 0) {
+        if (ua_t === 0 || ub_t === 0) {
             result = new Intersection("Coincident");
         } else {
             result = new Intersection("Parallel");
@@ -1421,12 +1429,12 @@ Intersection.intersectRayRay = function (a1, a2, b1, b2) {
     let ua_t = (b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x);
     let ub_t = (a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x);
     let u_b = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y);
-    if (u_b != 0) {
+    if (u_b !== 0) {
         let ua = ua_t / u_b;
         result = new Intersection("Intersection");
         result.points.push(new Point2D(a1.x + ua * (a2.x - a1.x), a1.y + ua * (a2.y - a1.y)));
     } else {
-        if (ua_t == 0 || ub_t == 0) {
+        if (ua_t === 0 || ub_t === 0) {
             result = new Intersection("Coincident");
         } else {
             result = new Intersection("Parallel");
@@ -1473,6 +1481,10 @@ function IntersectionParams(name, params) {
 }
 IntersectionParams.prototype.init = function (name, params) {
     this.name = name;
+    this.isBezier3 = name === 'Bezier3';
+    this.isLine = name === 'Line';
+    this.isCircle = name === 'Circle';
+    this.isPath = name === 'Path';
     this.params = params;
 };
 
@@ -1523,10 +1535,12 @@ Point2D.prototype.offset = function (a, b) {
     }
     return result;
 };
-Point2D.prototype.rmoveto = function (dx, dy) {
+
+/*Point2D.prototype.rmoveto = function (dx, dy) {
     this.x += dx;
     this.y += dy;
 };
+
 Point2D.prototype.scalarAdd = function (scalar) {
     return new Point2D(this.x + scalar, this.y + scalar);
 };
@@ -1535,9 +1549,12 @@ Point2D.prototype.scalarAddEquals = function (scalar) {
     this.y += scalar;
     return this;
 };
+*/
+
 Point2D.prototype.subtract = function (that) {
     return new Point2D(this.x - that.x, this.y - that.y);
 };
+/*
 Point2D.prototype.subtractEquals = function (that) {
     this.x -= that.x;
     this.y -= that.y;
@@ -1559,28 +1576,23 @@ Point2D.prototype.multiplyEquals = function (scalar) {
     this.y *= scalar;
     return this;
 };
+
 Point2D.prototype.divide = function (scalar) {
     return new Point2D(this.x / scalar, this.y / scalar);
 };
+
 Point2D.prototype.divideEquals = function (scalar) {
     this.x /= scalar;
     this.y /= scalar;
     return this;
 };
+ */
 Point2D.prototype.compare = function (that) {
     return (this.x - that.x || this.y - that.y);
 };
-Point2D.prototype.eq = function (that) {
-    return (this.x == that.x && this.y == that.y);
-};
-Point2D.prototype.lt = function (that) {
-    return (this.x < that.x && this.y < that.y);
-};
+
 Point2D.prototype.lte = function (that) {
     return (this.x <= that.x && this.y <= that.y);
-};
-Point2D.prototype.gt = function (that) {
-    return (this.x > that.x && this.y > that.y);
 };
 Point2D.prototype.gte = function (that) {
     return (this.x >= that.x && this.y >= that.y);
@@ -1602,27 +1614,11 @@ Point2D.prototype.max = function (that) {
 Point2D.prototype.toString = function () {
     return this.x + "," + this.y;
 };
-Point2D.prototype.setXY = function (x, y) {
-    this.x = x;
-    this.y = y;
-};
-Point2D.prototype.setFromPoint = function (that) {
-    this.x = that.x;
-    this.y = that.y;
-};
-Point2D.prototype.swap = function (that) {
-    let x = this.x;
-    let y = this.y;
-    this.x = that.x;
-    this.y = that.y;
-    that.x = x;
-    that.y = y;
-};
-//Polynomial.TOLERANCE = 1e-12;
+
 Polynomial.interpolate = function (xs, ys, n, offset, x) {
     if (xs.constructor !== Array || ys.constructor !== Array) throw new Error("Polynomial.interpolate: xs and ys must be arrays");
     if (isNaN(n) || isNaN(offset) || isNaN(x)) throw new Error("Polynomial.interpolate: n, offset, and x must be numbers");
-    let y = 0;
+    let y;
     let dy = 0;
     let c = new Array(n);
     let d = new Array(n);
@@ -1645,7 +1641,7 @@ Polynomial.interpolate = function (xs, ys, n, offset, x) {
             let hp = xs[offset + i + m] - x;
             let w = c[i + 1] - d[i];
             let den = ho - hp;
-            if (den == 0.0) {
+            if (den === 0.0) {
                 result = {
                     y: 0,
                     dy: 0
@@ -1666,45 +1662,45 @@ Polynomial.interpolate = function (xs, ys, n, offset, x) {
 };
 
 function Polynomial() {
-    let c = new Array();
+    let c = [];
     for (let i = arguments.length - 1; i >= 0; i--) c.push(arguments[i]);
     this.coefs = c;
     this._variable = "t";
-    this._s = 0;
+    //this._s = 0;
     this.degree = c.length - 1;
-};
-let roots1 = newRoots(5);
+}
+//let roots1 = newRoots(5);
 let roots2 = newRoots(4);
 let roots3 = newRoots(4);
-let rootsj1 = newRoots(1);
-let rootsj2 = newRoots(2);
+//let rootsj1 = newRoots(1);
+//let rootsj2 = newRoots(2);
 let rootsj3 = newRoots(3);
 let rootsj4 = newRoots(4);
-let rootsi = new Array();
+let rootsi = [];
 for(let i = 0; i < 12; ++i)
     rootsi.push(newRoots(i + 1));
 
 function newRoots(n){
-    let roots = new Array();
+    let roots = [];
     for(let i = 0; i < n; ++i)
         roots.push(-1);
     return roots;
-};
-Polynomial.prototype.init = function (coefs) {
-    let c = new Array();
+}
+/*Polynomial.prototype.init = function (coefs) {
+    let c = [];
     for (let i = coefs.length - 1; i >= 0; i--) c.push(coefs[i]);
     this.coefs = c;
     this._variable = "t";
     this._s = 0;
-};
-Polynomial.prototype.eval = peval;
+}*/
+//Polynomial.prototype.eval = peval;
 
-function peval(x) {
+/*function peval(x) {
     if (isNaN(x)) throw new Error("Polynomial.eval: parameter must be a number");
     let result = 0;
     for (let i = this.coefs.length - 1; i >= 0; i--) result = result * x + this.coefs[i];
     return result;
-};
+}*/
 Polynomial.prototype.add = function (that) {
     let result = new Polynomial();
     let d1 = this.getDegree();
@@ -1724,6 +1720,7 @@ Polynomial.prototype.multiply = function (that) {
         for (let j = 0; j <= that.getDegree(); j++) result.coefs[i + j] += this.coefs[i] * that.coefs[j];
     return result;
 };
+/*
 Polynomial.prototype.divide_scalar = function (scalar) {
     for (let i = 0; i < this.coefs.length; i++) this.coefs[i] /= scalar;
 };
@@ -1734,15 +1731,17 @@ Polynomial.prototype.simplify = function () {
         else break;
     }
 };
-Polynomial.prototype.bisection = bisection;
+*/
 
-//TODO speedup?, takes another 25% of AI time
+//Polynomial.prototype.bisection = bisection;
+
 function bisection(coefs, min, max) {
+
     let TOLERANCE = 1e-12;
-    let last = coefs.length - 1;
     let minValue = 0;
     let maxValue = 0;
-    for (let i = last; i >= 0; i--) {
+    const last = coefs.length -1;
+    for (let i = last; i >= 0; --i) {
         minValue = minValue * min + coefs[i];
         maxValue = maxValue * max + coefs[i];
     }
@@ -1756,7 +1755,10 @@ function bisection(coefs, min, max) {
         for (let i = 0; i < iters; i++) {
             result = 0.5 * (min + max);
             let value = 0;
-            for (let j = last; j >= 0; j--) value = value * result + coefs[j];
+            for (let i = last; i >= 0; --i) {
+                value *= result;
+                value += coefs[i];
+            }
             if (Math.abs(value) <= TOLERANCE) {
                 break;
             }
@@ -1770,29 +1772,29 @@ function bisection(coefs, min, max) {
         }
     }
     return result;
-};
+}
 Polynomial.prototype.toString = function () {
-    let coefs = new Array();
-    let signs = new Array();
+    let coefs = [];
+    let signs = [];
     for (let i = this.coefs.length - 1; i >= 0; i--) {
         let value = Math.round(this.coefs[i] * 1000) / 1000;
-        if (value != 0) {
+        if (value !== 0) {
             let sign = (value < 0) ? " - " : " + ";
             value = Math.abs(value);
             if (i > 0)
-                if (value == 1) value = this._variable;
+                if (value === 1) value = this._variable;
                 else value += this._variable;
             if (i > 1) value += "^" + i;
             signs.push(sign);
             coefs.push(value);
         }
     }
-    signs[0] = (signs[0] == " + ") ? "" : "-";
+    signs[0] = (signs[0] === " + ") ? "" : "-";
     let result = "";
     for (let i = 0; i < coefs.length; i++) result += signs[i] + coefs[i];
     return result;
 };
-Polynomial.prototype.trapezoid = function (min, max, n) {
+/*Polynomial.prototype.trapezoid = function (min, max, n) {
     if (isNaN(min) || isNaN(max) || isNaN(n)) throw new Error("Polynomial.trapezoid: parameters must be numbers");
     let range = max - min;
     let TOLERANCE = 1e-7;
@@ -1813,7 +1815,8 @@ Polynomial.prototype.trapezoid = function (min, max, n) {
     } if (isNaN(this._s)) throw new Error("Polynomial.trapezoid: this._s is NaN");
     return this._s;
 };
-Polynomial.prototype.simpson = function (min, max) {
+ */
+/*Polynomial.prototype.simpson = function (min, max) {
     if (isNaN(min) || isNaN(max)) throw new Error("Polynomial.simpson: parameters must be numbers");
     let range = max - min;
     let st = 0.5 * range * (this.eval(min) + this.eval(max));
@@ -1863,18 +1866,19 @@ Polynomial.prototype.romberg = function (min, max) {
         h[j] = 0.25 * h[j - 1];
     }
     return result.y;
-};
+};*/
 Polynomial.prototype.getDegree = function () {
     return this.coefs.length - 1;
 };
-Polynomial.prototype.getDerivative = function () {
+/*Polynomial.prototype.getDerivative = function () {
     let derivative = new Polynomial();
     let last = this.coefs.length;
     for (let i = 1; i < last; i++) {
         derivative.coefs.push(i * this.coefs[i]);
     }
     return derivative;
-};
+};*/
+
 Polynomial.prototype.getRoots = gr;
 
 function gr(roots) {
@@ -1887,7 +1891,7 @@ function gr(roots) {
     case 1:
         //this.getLinearRoot(roots);
         a = this.coefs[1];
-        if (a != 0) roots[0] = -this.coefs[0] / a;
+        if (a !== 0) roots[0] = -this.coefs[0] / a;
         else roots[0] = -1;
         break;
     case 2:
@@ -1900,7 +1904,7 @@ function gr(roots) {
             let e = Math.sqrt(d);
             roots[0] = 0.5 * (-b + e);
             roots[1] = 0.5 * (-b - e);
-        } else if (d == 0) {
+        } else if (d === 0) {
             roots[0] = 0.5 * -b;
             roots[1] = -1;
         }
@@ -2015,34 +2019,37 @@ function gr(roots) {
         roots[3] = -1;
     }
     return roots;
-};
+}
 Polynomial.prototype.getRootsInInterval = getRootsInInterval;
-
-let dummyroots = new Array();
 
 function getRootsInInterval(min, max, roots) {
     let root;
     let coefs = this.coefs;
-    if (coefs.length == 2) {
+    const coefsLen = coefs.length
+    if (coefs.length === 2) {
         root = bisection(coefs, min, max);
         if (root != null) {
             roots[0] = root;
         }
         else {
             roots[0] = -1;
-        } 
+        }
     } else {
         let ii = 0;
         let degree = this.degree;
-        for(let i = 0; i < roots.length; ++i)
+        const rootsLen = roots.length;
+        const degreeMinus1 = degree -1;
+        for(let i = 0; i < rootsLen; ++i)
             roots[i] = -1;
-        for (let i = 1; i < coefs.length; i++) {
-            dpol[degree - 1].coefs[i - 1] = i * coefs[i];
+        let subpol = dpol[degreeMinus1];
+        for (let i = 1; i < coefsLen; ++i) {
+            subpol.coefs[i - 1] = i * coefs[i];
         }
-        //dpol.degree = degree - 1; 
-        let droots = dpol[degree - 1].getRootsInInterval(min, max, rootsi[degree-1]);
+        //dpol.degree = degree - 1;
+        let droots = dpol[degreeMinus1].getRootsInInterval(min, max, rootsi[degreeMinus1]);
         let lastRoot = min;
-        for (let i = 0; i <= droots.length - 1; i++) {
+        const drootsLen = droots.length;
+        for (let i = 0; i < drootsLen; ++i) {
             if(droots[i] < 0) continue;
             root = bisection(coefs, lastRoot, droots[i]);
             if (root != null) {
@@ -2056,15 +2063,15 @@ function getRootsInInterval(min, max, roots) {
         }
     }
     return roots;
-};
-
+}
+/*
 Polynomial.prototype.getLinearRoot = function (roots) {
     let a = this.coefs[1];
-    if (a != 0) roots[0] = -this.coefs[0] / a;
+    if (a !== 0) roots[0] = -this.coefs[0] / a;
     return roots;
 };
 Polynomial.prototype.getQuadraticRoots = function (roots) {
-    if (this.getDegree() == 2) {
+    if (this.getDegree() === 2) {
         let a = this.coefs[2];
         let b = this.coefs[1] / a;
         let c = this.coefs[0] / a;
@@ -2073,15 +2080,15 @@ Polynomial.prototype.getQuadraticRoots = function (roots) {
             let e = Math.sqrt(d);
             roots[0] = 0.5 * (-b + e);
             roots[1] = 0.5 * (-b - e);
-        } else if (d == 0) {
+        } else if (d === 0) {
             roots[0] = 0.5 * -b;
         }
     }
     return roots;
-};
-Polynomial.prototype.getCubicRoots = function (roots) {
+};*/
+/*Polynomial.prototype.getCubicRoots = function (roots) {
     let TOLERANCE = 1e-12;
-    if (this.getDegree() == 3) {
+    if (this.getDegree() === 3) {
         let c3 = this.coefs[3];
         let c2 = this.coefs[2] / c3;
         let c1 = this.coefs[1] / c3;
@@ -2122,8 +2129,10 @@ Polynomial.prototype.getCubicRoots = function (roots) {
     }
     return roots;
 };
+
+ */
 let qpol = new Polynomial(0,0,0);
-let dpol = new Array();
+let dpol = [];
 for(let i = 0; i < 12; ++i){
     let pol = new Polynomial(0);
     for(let j = 1; j < i + 1; j++)
@@ -2132,10 +2141,10 @@ for(let i = 0; i < 12; ++i){
     dpol.push(pol);
 }
 let pol33 = new Polynomial(0,0,0,0,0,0,0,0,0,0);
-let pol61 = new Polynomial(0,0,0,0,0,0);
+//let pol61 = new Polynomial(0,0,0,0,0,0);
 let pol41 = new Polynomial(0,0,0,0);
 let pol42 = new Polynomial(0,0,0,0);
-Polynomial.prototype.getQuarticRoots = function (roots) {
+/*Polynomial.prototype.getQuarticRoots = function (roots) {
     let TOLERANCE = 1e-12;
     if (this.getDegree() == 4) {
         let c4 = this.coefs[4];
@@ -2197,7 +2206,7 @@ Polynomial.prototype.getQuarticRoots = function (roots) {
     }
     return roots;
 };
-
+*/
 function Vector2D(x, y) {
     if (arguments.length > 0) {
         this.x = x;
@@ -2210,21 +2219,7 @@ Vector2D.prototype.length = function () {
 Vector2D.prototype.dot = function (that) {
     return this.x * that.x + this.y * that.y;
 };
-Vector2D.prototype.cross = function (that) {
-    return this.x * that.y - this.y * that.x;
-}
-Vector2D.prototype.unit = function () {
-    return this.divide(this.length());
-};
-Vector2D.prototype.unitEquals = function () {
-    this.divideEquals(this.length());
-    return this;
-};
 Vector2D.prototype.add = function (that) {
-    this.x += that.x, this.y += that.y;
-    return this;
-};
-Vector2D.prototype.addEquals = function (that) {
     this.x += that.x;
     this.y += that.y;
     return this;
@@ -2232,37 +2227,17 @@ Vector2D.prototype.addEquals = function (that) {
 Vector2D.prototype.subtract = function (that) {
     return new Vector2D(this.x - that.x, this.y - that.y);
 };
+/*
 Vector2D.prototype.subtractEquals = function (that) {
     this.x -= that.x;
     this.y -= that.y;
     return this;
 };
+ */
 Vector2D.prototype.multiply = function (scalar) {
-    this.x *= scalar, this.y *= scalar;
-    return this;
-};
-Vector2D.prototype.multiplyEquals = function (scalar) {
     this.x *= scalar;
     this.y *= scalar;
     return this;
-};
-Vector2D.prototype.divide = function (scalar) {
-    return new Vector2D(this.x / scalar, this.y / scalar);
-};
-Vector2D.prototype.divideEquals = function (scalar) {
-    this.x /= scalar;
-    this.y /= scalar;
-    return this;
-};
-Vector2D.prototype.perp = function () {
-    return new Vector2D(-this.y, this.x);
-};
-Vector2D.prototype.perpendicular = function (that) {
-    return this.subtract(this.project(that));
-};
-Vector2D.prototype.project = function (that) {
-    let percent = this.dot(that) / that.dot(that);
-    return that.multiply(percent);
 };
 Vector2D.prototype.toString = function () {
     return this.x + "," + this.y;
@@ -2279,31 +2254,18 @@ function Shape(svgNode) {
 }
 Shape.prototype.init = function (svgNode) {
     this.svgNode = svgNode;
-    this.locked = false;
+    //this.locked = false;
     this.visible = true;
-    this.selected = false;
+    //this.selected = false;
     this.callback = null;
-    this.lastUpdate = null;
+    //this.lastUpdate = null;
 }
 Shape.prototype.show = function (state) {
     let display = (state) ? "inline" : "none";
     this.visible = state;
     this.svgNode.setAttributeNS(null, "display", display);
 };
-Shape.prototype.refresh = function () {};
-Shape.prototype.update = function () {
-    this.refresh();
-    if (this.owner) this.owner.update(this);
-    if (this.callback != null) this.callback(this);
-};
 Shape.prototype.translate = function (delta) {};
-Shape.prototype.select = function (state) {
-    this.selected = state;
-};
-Shape.prototype.registerHandles = function () {};
-Shape.prototype.unregisterHandles = function () {};
-Shape.prototype.selectHandles = function (select) {};
-Shape.prototype.showHandles = function (state) {};
 
 Circle.prototype = new Shape();
 Circle.prototype.constructor = Circle;
@@ -2313,7 +2275,7 @@ function Circle() {
     this.init();
 }
 Circle.prototype.init = function (svgNode) {
-    if (svgNode == null || svgNode.localName == "circle") {
+    if (svgNode == null || svgNode.localName === "circle") {
         Circle.superclass.init.call(this, svgNode);
         let cx = 0; //parseFloat(svgNode.getAttributeNS(null, "cx"));
         let cy = 0; // parseFloat(svgNode.getAttributeNS(null, "cy"));
@@ -2344,23 +2306,7 @@ Circle.prototype.refresh = function () {
     let r = this.radius.point.distanceFrom(this.center.point);
     this.svgNode.setAttributeNS(null, "cx", this.center.point.x);
     this.svgNode.setAttributeNS(null, "cy", this.center.point.y);
-    this.svgNode.setAttributeNS(null, "r", r);
-};
-Circle.prototype.registerHandles = function () {
-    mouser.register(this.center);
-    mouser.register(this.radius);
-};
-Circle.prototype.unregisterHandles = function () {
-    mouser.unregister(this.center);
-    mouser.unregister(this.radius);
-};
-Circle.prototype.selectHandles = function (select) {
-    this.center.select(select);
-    this.radius.select(select);
-};
-Circle.prototype.showHandles = function (state) {
-    this.center.show(state);
-    this.radius.show(state);
+    this.svgNode.setAttributeNS(null, "r", r.toString());
 };
 Circle.prototype.getIntersectionParams = function () {
     this.ip.params[0] = this.center.point;
@@ -2377,7 +2323,7 @@ function Ellipse(svgNode) {
     }
 }
 Ellipse.prototype.init = function (svgNode) {
-    if (svgNode == null || svgNode.localName != "ellipse")
+    if (svgNode == null || svgNode.localName !== "ellipse")
         throw new Error("Ellipse.init: Invalid localName: " + svgNode.localName);
     Ellipse.superclass.init.call(this, svgNode);
     let cx = parseFloat(svgNode.getAttributeNS(null, "cx"));
@@ -2398,38 +2344,11 @@ Ellipse.prototype.realize = function () {
     this.radiusX.show(false);
     this.radiusY.show(false);
 };
-Ellipse.prototype.refresh = function () {
-    let rx = Math.abs(this.center.point.x - this.radiusX.point.x);
-    let ry = Math.abs(this.center.point.y - this.radiusY.point.y);
-    this.svgNode.setAttributeNS(null, "cx", this.center.point.x);
-    this.svgNode.setAttributeNS(null, "cy", this.center.point.y);
-    this.svgNode.setAttributeNS(null, "rx", rx);
-    this.svgNode.setAttributeNS(null, "ry", ry);
-};
-Ellipse.prototype.registerHandles = function () {
-    mouser.register(this.center);
-    mouser.register(this.radiusX);
-    mouser.register(this.radiusY);
-};
-Ellipse.prototype.unregisterHandles = function () {
-    mouser.unregister(this.center);
-    mouser.unregister(this.radiusX);
-    mouser.unregister(this.radiusY);
-};
-Ellipse.prototype.selectHandles = function (select) {
-    this.center.select(select);
-    this.radiusX.select(select);
-    this.radiusY.select(select);
-};
-Ellipse.prototype.showHandles = function (state) {
-    this.center.show(state);
-    this.radiusX.show(state);
-    this.radiusY.show(state);
-};
 Ellipse.prototype.getIntersectionParams = function () {
     this.ip.params[0] = this.center.point;
-    this.ip.params[1] = parseFloat(this.svgNode.getAttributeNS(null, "rx")), this.ip.params[2] = parseFloat(this.svgNode.getAttributeNS(null, "ry"));
-    return ip;
+    this.ip.params[1] = parseFloat(this.svgNode.getAttributeNS(null, "rx"));
+    this.ip.params[2] = parseFloat(this.svgNode.getAttributeNS(null, "ry"));
+    return this.ip;
 };
 Handle.prototype = new Shape();
 Handle.prototype.constructor = Handle;
@@ -2443,10 +2362,9 @@ function Handle(x, y, owner) {
         this.init(x, y, owner);
     }
 }
-Handle.prototype.init = function (x, y, owner) {
+Handle.prototype.init = function (x, y) {
     Handle.superclass.init.call(this, null);
     this.point = new Point2D(x, y);
-    this.owner = owner;
     this.constrain = Handle.NO_CONSTRAINTS;
 }
 Handle.prototype.realize = function () {
@@ -2454,9 +2372,9 @@ Handle.prototype.realize = function () {
 Handle.prototype.unrealize = function () {
 };
 Handle.prototype.translate = function (delta) {
-    if (this.constrain == Handle.CONSTRAIN_X) {
+    if (this.constrain === Handle.CONSTRAIN_X) {
         this.point.x += delta.x;
-    } else if (this.constrain == Handle.CONSTRAIN_Y) {
+    } else if (this.constrain === Handle.CONSTRAIN_Y) {
         this.point.y += delta.y;
     } else {
         this.point.addEquals(delta);
@@ -2464,8 +2382,6 @@ Handle.prototype.translate = function (delta) {
     this.refresh();
 };
 Handle.prototype.refresh = function () {
-};
-Handle.prototype.select = function (state) {
 };
 Line.prototype = new Shape();
 Line.prototype.constructor = Line;
@@ -2477,7 +2393,7 @@ function Line(svgNode) {
     }
 }
 Line.prototype.init = function (svgNode) {
-    if (svgNode == null || svgNode.localName != "line")
+    if (svgNode == null || svgNode.localName !== "line")
         throw new Error("Line.init: Invalid localName: " + svgNode.localName);
     Line.superclass.init.call(this, svgNode);
     let x1 = parseFloat(svgNode.getAttributeNS(null, "x1"));
@@ -2495,44 +2411,10 @@ Line.prototype.realize = function () {
     this.p1.show(false);
     this.p2.show(false);
 };
-Line.prototype.refresh = function () {
-    this.svgNode.setAttributeNS(null, "x1", this.p1.point.x);
-    this.svgNode.setAttributeNS(null, "y1", this.p1.point.y);
-    this.svgNode.setAttributeNS(null, "x2", this.p2.point.x);
-    this.svgNode.setAttributeNS(null, "y2", this.p2.point.y);
-};
-Line.prototype.registerHandles = function () {
-    mouser.register(this.p1);
-    mouser.register(this.p2);
-};
-Line.prototype.unregisterHandles = function () {
-    mouser.unregister(this.p1);
-    mouser.unregister(this.p2);
-};
-Line.prototype.selectHandles = function (select) {
-    this.p1.select(select);
-    this.p2.select(select);
-};
-Line.prototype.showHandles = function (state) {
-    this.p1.show(state);
-    this.p2.show(state);
-};
-Line.prototype.cut = function (t) {
-    let cutPoint = this.p1.point.lerp(this.p2.point, t);
-    let newLine = this.svgNode.cloneNode(true);
-    this.p2.point.setFromPoint(cutPoint);
-    this.p2.update();
-    if (this.svgNode.nextSibling != null) this.svgNode.parentNode.insertBefore(newLine, this.svgNode.nextSibling);
-    else this.svgNode.parentNode.appendChild(newLine);
-    let line = new Line(newLine);
-    line.realize();
-    line.p1.point.setFromPoint(cutPoint);
-    line.p1.update();
-};
 Line.prototype.getIntersectionParams = function () {
     this.ip.params[0] = this.p1.point;
     this.ip.params[1] = this.p2.point;
-    return ip;
+    return this.ip;
 };
 
 function Token(type, text) {
@@ -2545,7 +2427,7 @@ Token.prototype.init = function (type, text) {
     this.text = text;
 };
 Token.prototype.typeis = function (type) {
-    return this.type == type;
+    return this.type === type;
 }
 Path.prototype = new Shape();
 Path.prototype.constructor = Path;
@@ -2579,7 +2461,7 @@ Path.PARAMS = {
 function Path() {
     this.init();
 }
-Path.prototype.init = function (svgNode) {
+Path.prototype.init = function () {
     this.ip = new IntersectionParams("Path", []);
     this.getIntersectionParams();
 };
@@ -2593,48 +2475,18 @@ Path.prototype.unrealize = function () {
         this.segments[i].unrealize();
     }
 };
-Path.prototype.refresh = function () {
-    let d = new Array();
-    for (let i = 0; i < this.segments.length; i++) {
-        d.push(this.segments[i].toString());
-    }
-    this.svgNode.setAttributeNS(null, "d", d.join(" "));
-};
-Path.prototype.registerHandles = function () {
-    for (let i = 0; i < this.segments.length; i++) {
-        this.segments[i].registerHandles();
-    }
-};
-Path.prototype.unregisterHandles = function () {
-    for (let i = 0; i < this.segments.length; i++) {
-        this.segments[i].unregisterHandles();
-    }
-};
-Path.prototype.selectHandles = function (select) {
-    for (let i = 0; i < this.segments.length; i++) {
-        this.segments[i].selectHandles(select);
-    }
-};
-Path.prototype.showHandles = function (state) {
-    for (let i = 0; i < this.segments.length; i++) {
-        this.segments[i].showHandles(state);
-    }
-};
-Path.prototype.appendPathSegment = function (segment) {
-    segment.previous = this.segments[this.segments.length - 1];
-    this.segments.push(segment);
-};
+
 Path.prototype.parseData = function (d) {
     let tokens = this.tokenize(d);
     let index = 0;
     let token = tokens[index];
     let mode = "BOD";
-    this.segments = new Array();
+    this.segments = [];
     while (!token.typeis(Path.EOD)) {
         let param_length;
-        let params = new Array();
-        if (mode == "BOD") {
-            if (token.text == "M" || token.text == "m") {
+        let params = [];
+        if (mode === "BOD") {
+            if (token.text === "M" || token.text === "m") {
                 index++;
                 param_length = Path.PARAMS[token.text].length;
                 mode = token.text;
@@ -2657,9 +2509,9 @@ Path.prototype.parseData = function (d) {
             }
             let segment;
             let length = this.segments.length;
-            let previous = (length == 0) ? null : this.segments[length - 1];
-            if((mode == "C" || mode == "c") && params[2] == params[4] && params[3] == params[5]) {
-                mode = mode == "C" ? "L" : "l";
+            let previous = (length === 0) ? null : this.segments[length - 1];
+            if((mode === "C" || mode === "c") && params[2] === params[4] && params[3] === params[5]) {
+                mode = mode === "C" ? "L" : "l";
                 params = [params[4], params[5]];
             }
             switch (mode) {
@@ -2713,12 +2565,12 @@ Path.prototype.parseData = function (d) {
                 break;
             default:
                 throw new Error("Unsupported segment type: " + mode);
-            };
+            }
             this.segments.push(segment);
             index += param_length;
             token = tokens[index];
-            if (mode == "M") mode = "L";
-            if (mode == "m") mode = "l";
+            if (mode === "M") mode = "L";
+            if (mode === "m") mode = "l";
             this.ip = new IntersectionParams("Path", []);
         } else {
             throw new Error("Path data ended before all parameters were found");
@@ -2726,16 +2578,17 @@ Path.prototype.parseData = function (d) {
     }
 }
 Path.prototype.tokenize = function (d) {
-    let tokens = new Array();
-    while (d != "") {
-        if (d.match(/^([ \t\r\n,]+)/)) {
-            d = d.substr(RegExp.$1.length);
-        } else if (d.match(/^([aAcChHlLmMqQsStTvVzZ])/)) {
-            tokens[tokens.length] = new Token(Path.COMMAND, RegExp.$1);
-            d = d.substr(RegExp.$1.length);
-        } else if (d.match(/^(([-+]?[0-9]+(\.[0-9]*)?|[-+]?\.[0-9]+)([eE][-+]?[0-9]+)?)/)) {
-            tokens[tokens.length] = new Token(Path.NUMBER, parseFloat(RegExp.$1));
-            d = d.substr(RegExp.$1.length);
+    let tokens = [];
+    while (d !== "") {
+        let g = null;
+        if ((g = d.match(/^([ \t\r\n,]+)/))!== null) {
+            d = d.substring(g[0].length);
+        } else if ((g = d.match(/^([aAcChHlLmMqQsStTvVzZ])/)) !== null) {
+            tokens[tokens.length] = new Token(Path.COMMAND, g[0]);
+            d = d.substring(g[0].length);
+        } else if ((g = d.match(/^(([-+]?\d+(\.\d*)?|[-+]?\.\d+)([eE][-+]?\d+)?)/)) !== null) {
+            tokens[tokens.length] = new Token(Path.NUMBER, parseFloat(g[0]));
+            d = d.substring(g[0].length);
         } else {
             throw new Error("Unrecognized segment command: " + d);
         }
@@ -2745,77 +2598,51 @@ Path.prototype.tokenize = function (d) {
 }
 Path.prototype.intersectShape = intersectShape;
 
-function overlap(bb1, bb2) {
-    return (bb1.x < bb2.x + bb2.width && bb2.x < bb1.x + bb1.width
-        && bb1.y < bb2.y + bb2.height && bb2.y < bb1.y + bb1.height);
-}
-
-//TODO speedup, takes 25% of AI time
 function intersectShape(shape, ret) {
-    let last = this.segments.length;
     let shape2 = shape;
-    let ip2 = shape2.ip;//getIntersectionParams();
+    let ip2 = shape2.ip;
     if (ip2 == null) return;
-    for (let i = 0; i < last; i++) {
-        let shape1 = this.segments[i];
-        let ip1 = shape1.ip;//getIntersectionParams();
-        if (ip1 != null) {
-            if (ip1.name == "Path") {
+    for (const shape1 of this.segments) {
+        let ip1 = shape1.ip;
+        if (ip1 !== undefined) {
+            if (ip1.isPath) {
                 shape1.intersectShape(shape2, ret);
-                //Intersection.intersectPathShape(shape1, shape2, ret);
-            } else if (ip2.name == "Path") {
+            } else if (ip2.isPath) {
                 shape2.intersectShape(shape1, ret);
-                //Intersection.intersectPathShape(shape2, shape1, ret);
             } else {
-                let method;
-                //let params;
-                if (ip1.name < ip2.name) {
-                    method = "intersect" + ip1.name + ip2.name;
-                    if(method == "intersectBezier3Bezier3") {
-                        if(!(ip1.bb && ip2.bb) || overlap(ip1.bb, ip2.bb))
-                            ib3b3(ip1.params[0], ip1.params[1], ip1.params[2], ip1.params[3], ip2.params[0], ip2.params[1], ip2.params[2], ip2.params[3], ret);
-                    }
-                    else if (method == "intersectBezier3Line") {
-                        ib3l(ip1.params[0], ip1.params[1], ip1.params[2], ip1.params[3], ip2.params[0], ip2.params[1], ret); 
-                    }
-                    else if (method == "intersectBezier3Circle") {
-                        ib3e(ip1.params[0], ip1.params[1], ip1.params[2], ip1.params[3], ip2.params[0], ip2.params[1], ip2.params[1], ret); 
-                    }
-                    //params = ip1.params.concat(ip2.params);
-                } else {
-                    method = "intersect" + ip2.name + ip1.name;
-                    //params = ip2.params.concat(ip1.params);
-                    if(method == "intersectBezier3Bezier3") {
-                        ib3b3(ip2.params[0], ip2.params[1], ip2.params[2], ip2.params[3], ip1.params[0], ip1.params[1], ip1.params[2], ip1.params[3], ret);
-                    }
-                    else if (method == "intersectBezier3Line") {
-                        ib3l(ip2.params[0], ip2.params[1], ip2.params[2], ip2.params[3], ip1.params[0], ip1.params[1], ret); 
-                    }
-                    else if (method == "intersectBezier3Circle") {
-                        ib3e(ip1.params[0], ip1.params[1], ip1.params[2], ip1.params[3], ip1.params[0], ip2.params[1], ip2.params[1], ret); 
-                    }
+                if(ip1.isBezier3 && ip2.isBezier3) {
+                    ib3b3(ip2.params, ip1.params, ret);
                 }
-                //else {
-                //    params.push(ret);
-                //    Intersection[method].apply(null, params);
-                //}
+                else if (ip1.isBezier3 && ip2.isLine){
+                    ib3l(ip1.params, ip2.params, ret);
+                }
+                else if (ip1.isBezier3 && ip2.isCircle) {
+                    ib3e(ip1.params, ip2.params, ret);
+                }
+                else if (ip2.isBezier3 && ip1.isLine) {
+                    ib3l(ip2.params, ip1.params, ret);
+                }
+                else if (ip2.isBezier3 && ip1.isCircle) {
+                    ib3e(ip2.params, ip1.params, ret);
+                }
             }
         }
     }
     return ret;
-};
+}
+
 Path.prototype.getIntersectionParams = function () {
     return this.ip;
 };
 
 function AbsolutePathSegment(command, params, owner, previous) {
     if (arguments.length > 0) this.init(command, params, owner, previous);
-};
+}
+
 AbsolutePathSegment.prototype.init = function (command, params, owner, previous) {
     this.command = command;
-    this.owner = owner;
     this.previous = previous;
-    this.handles = new Array();
+    this.handles = [];
     let index = 0;
     while (index < params.length) {
         let handle = new Handle(params[index], params[index + 1], owner);
@@ -2835,40 +2662,18 @@ AbsolutePathSegment.prototype.unrealize = function () {
         this.handles[i].unrealize();
     }
 };
-AbsolutePathSegment.prototype.registerHandles = function () {
-    for (let i = 0; i < this.handles.length; i++) {
-        mouser.register(this.handles[i]);
-    }
-};
-AbsolutePathSegment.prototype.unregisterHandles = function () {
-    for (let i = 0; i < this.handles.length; i++) {
-        mouser.unregister(this.handles[i]);
-    }
-};
-AbsolutePathSegment.prototype.selectHandles = function (select) {
-    for (let i = 0; i < this.handles.length; i++) {
-        this.handles[i].select(select);
-    }
-};
-AbsolutePathSegment.prototype.showHandles = function (state) {
-    for (let i = 0; i < this.handles.length; i++) {
-        this.handles[i].show(state);
-    }
-};
+/*
 AbsolutePathSegment.prototype.toString = function () {
-    let points = new Array();
+    let points = [];
     let command = "";
-    if (this.previous == null || this.previous.constructor != this.constuctor) command = this.command;
+    if (this.previous === null || this.previous.constructor !== this.constuctor) command = this.command;
     for (let i = 0; i < this.handles.length; i++) {
         points.push(this.handles[i].point.toString());
     }
     return command + points.join(" ");
-};
+};*/
 AbsolutePathSegment.prototype.getLastPoint = function () {
     return this.handles[this.handles.length - 1].point;
-};
-AbsolutePathSegment.prototype.getIntersectionParams = function () {
-    return null;
 };
 AbsoluteArcPath.prototype = new AbsolutePathSegment();
 AbsoluteArcPath.prototype.constructor = AbsoluteArcPath;
@@ -2880,7 +2685,7 @@ function AbsoluteArcPath(params, owner, previous) {
     }
 }
 AbsoluteArcPath.prototype.init = function (command, params, owner, previous) {
-    let point = new Array();
+    let point = [];
     let y = params.pop();
     let x = params.pop();
     point.push(x, y);
@@ -2888,54 +2693,15 @@ AbsoluteArcPath.prototype.init = function (command, params, owner, previous) {
     this.rx = parseFloat(params.shift());
     this.ry = parseFloat(params.shift());
     this.angle = parseFloat(params.shift());
-    this.arcFlag = parseFloat(params.shift());
-    this.sweepFlag = parseFloat(params.shift());
+    //this.arcFlag = parseFloat(params.shift());
+    //this.sweepFlag = parseFloat(params.shift());
 };
+/*
 AbsoluteArcPath.prototype.toString = function () {
-    let points = new Array();
     let command = "";
-    if (this.previous.constructor != this.constuctor) command = this.command;
+    if (this.previous.constructor !== this.constuctor) command = this.command;
     return command + [this.rx, this.ry, this.angle, this.arcFlag, this.sweepFlag, this.handles[0].point.toString()].join(",");
-};
-AbsoluteArcPath.prototype.getIntersectionParams = function () {
-    this.ip.params[0] = this.getCenter();
-    this.params[1] = this.rx;
-    this.params[2] = this.ry;
-    return ip;
-};
-AbsoluteArcPath.prototype.getCenter = function () {
-    let startPoint = this.previous.getLastPoint();
-    let endPoint = this.handles[0].point;
-    let rx = this.rx;
-    let ry = this.ry;
-    let angle = this.angle * Math.PI / 180;
-    let c = Math.cos(angle);
-    let s = Math.sin(angle);
-    let TOLERANCE = 1e-12;
-    let halfDiff = startPoint.subtract(endPoint).divide(2);
-    let x1p = halfDiff.x * c + halfDiff.y * s;
-    let y1p = halfDiff.x * -s + halfDiff.y * c;
-    let x1px1p = x1p * x1p;
-    let y1py1p = y1p * y1p;
-    let lambda = (x1px1p / (rx * rx)) + (y1py1p / (ry * ry));
-    if (lambda > 1) {
-        let factor = Math.sqrt(lambda);
-        rx *= factor;
-        ry *= factor;
-    }
-    let rxrx = rx * rx;
-    let ryry = ry * ry;
-    let rxy1 = rxrx * y1py1p;
-    let ryx1 = ryry * x1px1p;
-    let factor = (rxrx * ryry - rxy1 - ryx1) / (rxy1 + ryx1);
-    if (Math.abs(factor) < TOLERANCE) factor = 0;
-    let sq = Math.sqrt(factor);
-    if (this.arcFlag == this.sweepFlag) sq = -sq;
-    let mid = startPoint.add(endPoint).divide(2);
-    let cxp = sq * rx * y1p / ry;
-    let cyp = sq * -ry * x1p / rx;
-    return new Point2D(cxp * c - cyp * s + mid.x, cxp * s + cyp * c + mid.y);
-};
+};*/
 AbsoluteCurveto2.prototype = new AbsolutePathSegment();
 AbsoluteCurveto2.prototype.constructor = AbsoluteCurveto2;
 AbsoluteCurveto2.superclass = AbsolutePathSegment.prototype;
@@ -2949,16 +2715,11 @@ function AbsoluteCurveto2(params, owner, previous) {
 AbsoluteCurveto2.prototype.getControlPoint = function () {
     return this.handles[0].point;
 };
-AbsoluteCurveto2.prototype.getIntersectionParams = function () {
-    this.ip.params[0] = this.previous.getLastPoint();
-    this.ip.params[1] = this.handles[0].point;
-    this.ip.params[2] = this.handles[1].point;
-    return this.ip;
-};
 AbsoluteCurveto3.prototype = new AbsolutePathSegment();
 AbsoluteCurveto3.prototype.constructor = AbsoluteCurveto3;
 AbsoluteCurveto3.superclass = AbsolutePathSegment.prototype;
 
+/*
 function findBB(P) {
     let a = 3 * P[3].X - 9 * P[2].X + 9 * P[1].X - 3 * P[0].X;
     let b = 6 * P[0].X - 12 * P[1].X + 6 * P[2].X;
@@ -3018,12 +2779,14 @@ function findBB(P) {
         x:xl, y:yl, width: Math.max(1,xh-xl), height:Math.max(1,yh-yl)
     }
 }
+*/
+
 function AbsoluteCurveto3(params, owner, previous) {
     if (arguments.length > 0) {
         this.init("C", params, owner, previous);
     }
     this.ip = new IntersectionParams("Bezier3", [null, null, null, null]);
-    this.bb = findBB(params);
+    //this.bb = findBB(params);
     this.getIntersectionParams();
 }
 AbsoluteCurveto3.prototype.getLastControlPoint = function () {
@@ -3047,16 +2810,16 @@ function AbsoluteHLineto(params, owner, previous) {
 }
 AbsoluteHLineto.prototype.init = function (command, params, owner, previous) {
     let prevPoint = previous.getLastPoint();
-    let point = new Array();
+    let point = [];
     point.push(params.pop(), prevPoint.y);
     AbsoluteHLineto.superclass.init.call(this, command, point, owner, previous);
 };
+/*
 AbsoluteHLineto.prototype.toString = function () {
-    let points = new Array();
     let command = "";
-    if (this.previous.constructor != this.constuctor) command = this.command;
+    if (this.previous.constructor !== this.constuctor) command = this.command;
     return command + this.handles[0].point.x;
-};
+};*/
 AbsoluteLineto.prototype = new AbsolutePathSegment();
 AbsoluteLineto.prototype.constructor = AbsoluteLineto;
 AbsoluteLineto.superclass = AbsolutePathSegment.prototype;
@@ -3068,13 +2831,13 @@ function AbsoluteLineto(params, owner, previous) {
     this.ip = new IntersectionParams("Line", [null, null]);
     this.getIntersectionParams();
 }
+/*
 AbsoluteLineto.prototype.toString = function () {
-    let points = new Array();
     let command = "";
-    if (this.previous.constructor != this.constuctor)
-        if (this.previous.constructor != AbsoluteMoveto) command = this.command;
+    if (this.previous.constructor !== this.constuctor)
+        if (this.previous.constructor !== AbsoluteMoveto) command = this.command;
     return command + this.handles[0].point.toString();
-};
+};*/
 AbsoluteLineto.prototype.getIntersectionParams = function () {
     this.ip.params[0] = this.previous.getLastPoint();
     this.ip.params[1] = this.handles[0].point;
@@ -3113,12 +2876,6 @@ AbsoluteSmoothCurveto2.prototype.getControlPoint = function () {
         point = lastPoint;
     }
     return point;
-};
-AbsoluteSmoothCurveto2.prototype.getIntersectionParams = function () {
-    this.ip.params[0] = this.previous.getLastPoint();
-    this.ip.params[1] = this.getControlPoint();
-    this.ip.params[2] = this.handles[0].point;
-    return this.ip;
 };
 AbsoluteSmoothCurveto3.prototype = new AbsolutePathSegment();
 AbsoluteSmoothCurveto3.prototype.constructor = AbsoluteSmoothCurveto3;
@@ -3162,9 +2919,8 @@ function RelativePathSegment(command, params, owner, previous) {
 }
 RelativePathSegment.prototype.init = function (command, params, owner, previous) {
     this.command = command;
-    this.owner = owner;
     this.previous = previous;
-    this.handles = new Array();
+    this.handles = [];
     let lastPoint;
     if (this.previous) lastPoint = this.previous.getLastPoint();
     else lastPoint = new Point2D(0, 0);
@@ -3176,11 +2932,11 @@ RelativePathSegment.prototype.init = function (command, params, owner, previous)
     }
 };
 RelativePathSegment.prototype.toString = function () {
-    let points = new Array();
+    let points = [];
     let command = "";
     let lastPoint;
     if (this.previous) lastPoint = this.previous.getLastPoint();
-    else lastPoint = new Point2D(0, 0); if (this.previous == null || this.previous.constructor != this.constructor) command = this.command;
+    else lastPoint = new Point2D(0, 0); if (this.previous === null || this.previous.constructor !== this.constructor) command = this.command;
     for (let i = 0; i < this.handles.length; i++) {
         let point = this.handles[i].point.subtract(lastPoint);
         points.push(point.toString());
@@ -3228,12 +2984,6 @@ function RelativeCurveto2(params, owner, previous) {
 RelativeCurveto2.prototype.getControlPoint = function () {
     return this.handles[0].point;
 };
-RelativeCurveto2.prototype.getIntersectionParams = function () {
-    this.ip.params[0] = this.previous.getLastPoint();
-    this.ip.params[1] = this.handles[0].point;
-    this.ip.params[2] = this.handles[1].point;
-    return this.ip;
-};
 RelativeCurveto3.prototype = new RelativePathSegment();
 RelativeCurveto3.prototype.constructor = RelativeCurveto3;
 RelativeCurveto3.superclass = RelativePathSegment.prototype;
@@ -3247,13 +2997,6 @@ function RelativeCurveto3(params, owner, previous) {
 RelativeCurveto3.prototype.getLastControlPoint = function () {
     return this.handles[1].point;
 };
-RelativeCurveto3.prototype.getIntersectionParams = function () {
-    this.ip.params[0] = this.previous.getLastPoint();
-    this.ip.params[1] = this.handles[0].point;
-    this.ip.params[2] = this.handles[1].point;
-    this.ip.params[3] = this.handles[2].point;
-    return this.ip;
-};
 RelativeLineto.prototype = new RelativePathSegment();
 RelativeLineto.prototype.constructor = RelativeLineto;
 RelativeLineto.superclass = RelativePathSegment.prototype;
@@ -3265,19 +3008,18 @@ function RelativeLineto(params, owner, previous) {
     this.ip = new IntersectionParams("Line", [null, null]);
     this.getIntersectionParams();
 }
+/*
 RelativeLineto.prototype.toString = function () {
-    let points = new Array();
-    let command = "";
     let lastPoint;
     let point;
     if (this.previous) lastPoint = this.previous.getLastPoint();
-    else lastPoint = new Point(0, 0);
+    else lastPoint = new Point2D(0, 0);
     point = this.handles[0].point.subtract(lastPoint);
     let cmd = "";
-    if (this.previous.constructor != this.constuctor)
-        if (this.previous.constructor != RelativeMoveto) cmd = this.command;
+    if (this.previous.constructor !== this.constuctor)
+        if (this.previous.constructor !== RelativeMoveto) cmd = this.command;
     return cmd + point.toString();
-};
+};*/
 RelativeLineto.prototype.getIntersectionParams = function () {
     this.ip.params[0] = this.previous.getLastPoint();
     this.ip.params[1] = this.handles[0].point;
@@ -3317,12 +3059,6 @@ RelativeSmoothCurveto2.prototype.getControlPoint = function () {
     }
     return point;
 };
-RelativeSmoothCurveto2.prototype.getIntersectionParams = function () {
-    this.ip.params[0] = this.previous.getLastPoint();
-    this.ip.params[1] = this.getControlPoint();
-    this.ip.params[2] = this.handles[0].point;
-    return this.ip;
-};
 RelativeSmoothCurveto3.prototype = new RelativePathSegment();
 RelativeSmoothCurveto3.prototype.constructor = RelativeSmoothCurveto3;
 RelativeSmoothCurveto3.superclass = RelativePathSegment.prototype;
@@ -3333,27 +3069,8 @@ function RelativeSmoothCurveto3(params, owner, previous) {
     }
     this.ip = new IntersectionParams("Bezier3", [null, null, null, null]);
 }
-RelativeSmoothCurveto3.prototype.getFirstControlPoint = function () {
-    let lastPoint = this.previous.getLastPoint();
-    let point;
-    if (this.previous.command.match(/^[SsCc]$/)) {
-        let lastControl = this.previous.getLastControlPoint();
-        let diff = lastControl.subtract(lastPoint);
-        point = lastPoint.subtract(diff);
-    } else {
-        point = lastPoint;
-    }
-    return point;
-};
 RelativeSmoothCurveto3.prototype.getLastControlPoint = function () {
     return this.handles[0].point;
-};
-RelativeSmoothCurveto3.prototype.getIntersectionParams = function () {
-    this.ip.params[0] = this.previous.getLastPoint();
-    this.ip.params[1] = this.getFirstControlPoint();
-    this.ip.params[2] = this.handles[0].point;
-    this.ip.params[3] = this.handles[1].point;
-    return this.ip;
 };
 Polygon.prototype = new Shape();
 Polygon.prototype.constructor = Polygon;
@@ -3365,10 +3082,10 @@ function Polygon(svgNode) {
     }
 }
 Polygon.prototype.init = function (svgNode) {
-    if (svgNode.localName == "polygon") {
+    if (svgNode.localName === "polygon") {
         Polygon.superclass.init.call(this, svgNode);
         let points = svgNode.getAttributeNS(null, "points").split(/[\s,]+/);
-        this.handles = new Array();
+        this.handles = [];
         for (let i = 0; i < points.length; i += 2) {
             let x = parseFloat(points[i]);
             let y = parseFloat(points[i + 1]);
@@ -3387,108 +3104,6 @@ Polygon.prototype.realize = function () {
         }
     }
 };
-Polygon.prototype.refresh = function () {
-    let points = new Array();
-    for (let i = 0; i < this.handles.length; i++) {
-        points.push(this.handles[i].point.toString());
-    }
-    this.svgNode.setAttributeNS(null, "points", points.join(" "));
-};
-Polygon.prototype.registerHandles = function () {
-    for (let i = 0; i < this.handles.length; i++) mouser.register(this.handles[i]);
-};
-Polygon.prototype.unregisterHandles = function () {
-    for (let i = 0; i < this.handles.length; i++) mouser.unregister(this.handles[i]);
-};
-Polygon.prototype.selectHandles = function (select) {
-    for (let i = 0; i < this.handles.length; i++) this.handles[i].select(select);
-};
-Polygon.prototype.showHandles = function (state) {
-    for (let i = 0; i < this.handles.length; i++) this.handles[i].show(state);
-};
-Polygon.prototype.pointInPolygon = function (point) {
-    let length = this.handles.length;
-    let counter = 0;
-    let x_inter;
-    let p1 = this.handles[0].point;
-    for (let i = 1; i <= length; i++) {
-        let p2 = this.handles[i % length].point;
-        if (point.y > Math.min(p1.y, p2.y)) {
-            if (point.y <= Math.max(p1.y, p2.y)) {
-                if (point.x <= Math.max(p1.x, p2.x)) {
-                    if (p1.y != p2.y) {
-                        x_inter = (point.y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y) + p1.x;
-                        if (p1.x == p2.x || point.x <= x_inter) {
-                            counter++;
-                        }
-                    }
-                }
-            }
-        }
-        p1 = p2;
-    }
-    return (counter % 2 == 1);
-};
-Polygon.prototype.getIntersectionParams = function () {
-    for (let i = 0; i < this.handles.length; i++) {
-        this.ip.params[i] = this.handles[i].point;
-    }
-    return this.ip;
-};
-Polygon.prototype.getArea = function () {
-    let area = 0;
-    let length = this.handles.length;
-    let neg = 0;
-    let pos = 0;
-    for (let i = 0; i < length; i++) {
-        let h1 = this.handles[i].point;
-        let h2 = this.handles[(i + 1) % length].point;
-        area += (h1.x * h2.y - h2.x * h1.y);
-    }
-    return area / 2;
-};
-Polygon.prototype.getCentroid = function () {
-    let length = this.handles.length;
-    let area6x = 6 * this.getArea();
-    let x_sum = 0;
-    let y_sum = 0;
-    for (let i = 0; i < length; i++) {
-        let p1 = this.handles[i].point;
-        let p2 = this.handles[(i + 1) % length].point;
-        let cross = (p1.x * p2.y - p2.x * p1.y);
-        x_sum += (p1.x + p2.x) * cross;
-        y_sum += (p1.y + p2.y) * cross;
-    }
-    return new Point2D(x_sum / area6x, y_sum / area6x);
-};
-Polygon.prototype.isClockwise = function () {
-    return this.getArea() < 0;
-};
-Polygon.prototype.isCounterClockwise = function () {
-    return this.getArea() > 0;
-};
-Polygon.prototype.isConcave = function () {
-    let positive = 0;
-    let negative = 0;
-    let length = this.handles.length;
-    for (let i = 0; i < length; i++) {
-        let p0 = this.handles[i].point;
-        let p1 = this.handles[(i + 1) % length].point;
-        let p2 = this.handles[(i + 2) % length].point;
-        let v0 = Vector2D.fromPoints(p0, p1);
-        let v1 = Vector2D.fromPoints(p1, p2);
-        let cross = v0.cross(v1);
-        if (cross < 0) {
-            negative++;
-        } else {
-            positive++;
-        }
-    }
-    return (negative != 0 && positive != 0);
-};
-Polygon.prototype.isConvex = function () {
-    return !this.isConcave();
-};
 Rectangle.prototype = new Shape();
 Rectangle.prototype.constructor = Rectangle;
 Rectangle.superclass = Shape.prototype;
@@ -3499,7 +3114,7 @@ function Rectangle(svgNode) {
     }
 }
 Rectangle.prototype.init = function (svgNode) {
-    if (svgNode.localName == "rect") {
+    if (svgNode.localName === "rect") {
         Rectangle.superclass.init.call(this, svgNode);
         let x = parseFloat(svgNode.getAttributeNS(null, "x"));
         let y = parseFloat(svgNode.getAttributeNS(null, "y"));
@@ -3519,33 +3134,4 @@ Rectangle.prototype.realize = function () {
         this.p1.show(false);
         this.p2.show(false);
     }
-};
-Rectangle.prototype.refresh = function () {
-    let min = this.p1.point.min(this.p2.point);
-    let max = this.p1.point.max(this.p2.point);
-    this.svgNode.setAttributeNS(null, "x", min.x);
-    this.svgNode.setAttributeNS(null, "y", min.y);
-    this.svgNode.setAttributeNS(null, "width", max.x - min.x);
-    this.svgNode.setAttributeNS(null, "height", max.y - min.y);
-};
-Rectangle.prototype.registerHandles = function () {
-    mouser.register(this.p1);
-    mouser.register(this.p2);
-};
-Rectangle.prototype.unregisterHandles = function () {
-    mouser.unregister(this.p1);
-    mouser.unregister(this.p2);
-};
-Rectangle.prototype.selectHandles = function (select) {
-    this.p1.select(select);
-    this.p2.select(select);
-};
-Rectangle.prototype.showHandles = function (state) {
-    this.p1.show(state);
-    this.p2.show(state);
-};
-Rectangle.prototype.getIntersectionParams = function () {
-    this.ip.params[0] = this.p1.point;
-    this.ip.params[1] = this.p2.point;
-    return this.ip;
 };
